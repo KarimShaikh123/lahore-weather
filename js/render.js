@@ -47,17 +47,27 @@
     document.body.dataset.sky = SKY_BY_ICON[iconKey] || "overcast";
   }
 
+  const MIN_POINTS = 4;
+
   function renderHistory(history, $) {
     const section = $("trend");
-    if (!section || !history || history.length < 2) return;
+    if (!section || !history) return;
     const values = history.map((r) => r.aqi).filter(Number.isFinite);
+    const note = $("trend-note");
+    if (values.length < MIN_POINTS) {
+      note.textContent = "Not enough readings yet — the hourly collector will fill this in.";
+      note.hidden = false;
+      $("trend-plot").hidden = true;
+      section.hidden = false;
+      return;
+    }
     const path = LWData.sparklinePath(values, 1100, 120, 6);
-    if (!path) return;
     $("aqi-spark-path").setAttribute("d", path);
-    const latest = values[values.length - 1];
-    $("trend-latest").textContent = "Last 24h";
     $("trend-range").textContent = `${Math.min(...values)}–${Math.max(...values)} AQI`;
-    $("trend-current").textContent = String(latest);
+    $("trend-current").textContent = String(values[values.length - 1]);
+    note.hidden = true;
+    $("trend-plot").hidden = false;
+    $("trend-meta").hidden = false;
     section.hidden = false;
   }
 
