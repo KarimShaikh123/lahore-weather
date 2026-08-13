@@ -31,9 +31,10 @@ Living checklist — update the tick in the same commit that completes the task.
 
 ```
 GH Actions cron (hourly) ──POST /api/ingest──▶ verify Bearer CRON_SECRET
-    ├─ GET Open-Meteo weather   (keyless, lat 31.558, lon 74.35071)
-    ├─ GET WAQI station A471607  (key AQI_API_KEY, server-side only)
-    ├─ validate response (ok, error key, units, ranges, station-offline)
+    ├─ GET Open-Meteo weather      (keyless, lat 31.558, lon 74.35071)
+    ├─ GET WAQI station A471607     (key AQI_API_KEY, server-side only)
+    ├─ GET Open-Meteo air-quality   (CAMS — keyless; gases NO₂/O₃/SO₂/CO)
+    ├─ validate all three (ok, error key, units, ranges, station-offline)
     └─ zremrangebyscore readings {score} {score} → zadd readings {score} {json} → zremrangebyrank readings 0 -721
        (sorted set `readings`, score = epoch seconds of the reading's hour; prune keeps newest 720 ≈ 30 days)
 
@@ -107,6 +108,7 @@ Open-Meteo `current` object for Lahore (lat 31.558, lon 74.35071, `timezone=auto
 - `data.time.iso` — station reading time, ISO with offset or `Z`.
 - **Trap (verified): the public `token=demo` is hardcoded to fake data** — `feed/lahore/?token=demo` returned Shanghai, `feed/A471607/?token=demo` returned Bend, Oregon. The demo token is useless for verifying Lahore; the real token is required.
 - `data.iaqi` values carry **no unit field** — render them as-is; do not assert or invent units for WAQI pollutants.
+- **Gas trap (fixed 2026-08-13): the Lahore station `A471607` measures NO NO2/O3/SO2/CO** — those keys are absent from `iaqi` and must NOT be faked as zero. Gases are now sourced from **Open-Meteo Air Quality (CAMS)** at the same lat/lon: `carbon_monoxide→co`, `nitrogen_dioxide→no2`, `sulphur_dioxide→so2`, `ozone→o3` (all µg/m³, same scale as WAQI). Station values win if the station ever measures a gas; CAMS fills the gaps. Live-checked 2026-08-13: NO₂ 4.6, O₃ 259, SO₂ 18.3, CO 605.
 
 ### Stored reading contract (pinned 2026-08-13, task 4 — the mock `sample-reading.json` defines it; ingest task 6 must produce it, readings task 8 must serve it)
 
@@ -144,8 +146,8 @@ Pollutants are optional keys (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) �
 
 ### api/ serverless functions (tasks 6–8)
 
-- `api/ingest.js` — POST only. Bearer `CRON_SECRET` auth (`isAuthorized`); 405 on non-POST, 401 on bad auth, 502 on provider/validation failure, 500 on internal, 200 `{ ok, recorded_at, score, count }` on success. Fetches Open-Meteo (explicit `temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`, lat 31.558 lon 74.35071) and WAQI station feed in parallel; validates both (unit assertion °C/%/km/h, ranges, `is_day` 0/1, station-offline via `data:null`, wrong-city reject, freshness within ±2h/1h); builds the stored-reading contract; writes `zremrangebyscore(readings, score, score)` → `zadd` → `zremrangebyrank(readings, 0, -721)` prune.
-- **Keep the Redis client construction inside the handler** — tests `require("../api/ingest.js")` and must not construct a client (env vars may be unset in CI). Pure helpers are exported on `module.exports`: `isAuthorized`, `toEpochSeconds`, `formatOffset` (seconds → ISO offset like `+05:00`), `buildReading` (stamps `recorded_at` as `current.time + formatOffset(utc_offset_seconds)` so timestamps carry their offset), `validateWeather`, `validateWaqi`, `validateFreshness`.
+- `api/ingest.js` — POST only. Bearer `CRON_SECRET` auth (`isAuthorized`); 405 on non-POST, 401 on bad auth, 502 on provider/validation failure, 500 on internal, 200 `{ ok, recorded_at, score, count }` on success. Fetches Open-Meteo weather (explicit `temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`), WAQI station feed, and Open-Meteo air-quality (CAMS: `pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone`) in parallel; validates all three (unit assertion °C/%/km/h, ranges, `is_day` 0/1, station-offline via `data:null`, wrong-city reject, freshness within ±2h/1h); builds the stored-reading contract (gases filled from CAMS when the station lacks them); writes `zremrangebyscore(readings, score, score)` → `zadd` → `zremrangebyrank(readings, 0, -721)` prune.
+- **Keep the Redis client construction inside the handler** — tests `require("../api/ingest.js")` and must not construct a client (env vars may be unset in CI). Pure helpers are exported on `module.exports`: `isAuthorized`, `toEpochSeconds`, `formatOffset` (seconds → ISO offset like `+05:00`), `buildReading` (stamps `recorded_at` as `current.time + formatOffset(utc_offset_seconds)` so timestamps carry their offset), `validateWeather`, `validateWaqi`, `validateAir` (CAMS — only rejects a field when present and bad), `validateFreshness`.
 - `api/readings.js` — GET only, public (the browser calls it). Returns `{ latest, history }`: `latest` = `zrange("readings", -1, -1)[0]` or `null` when the DB is empty; `history` = `zrange("readings", -168, -1)` (last 168 ≈ 7 days, ascending, includes the latest element). Members arrive auto-deserialized by the client. **Uses the read-only Redis token** (`KV_REST_API_READ_ONLY_TOKEN`) — a public endpoint must not hold write credentials. 405 on non-GET, 500 on internal. Pure `buildReadingsResponse(latestRows, historyRows)` exported for tests.
 - `test/ingest.test.js` — unit tests for the ingest helpers (no network): auth, epoch math, contract mapping (optional pollutants absent when the station doesn't measure them), validation errors, freshness.
 

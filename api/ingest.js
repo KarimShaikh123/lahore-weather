@@ -2,9 +2,16 @@ const { Redis } = require("@upstash/redis");
 
 const MAX_READINGS = 720;
 const WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
+const AIR_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 const LAT = "31.558";
 const LON = "74.35071";
 const WAQI_URL = "https://api.waqi.info/feed/A471607/";
+const GAS_SOURCE_MAP = [
+  ["carbon_monoxide", "co"],
+  ["nitrogen_dioxide", "no2"],
+  ["sulphur_dioxide", "so2"],
+  ["ozone", "o3"],
+];
 
 function isAuthorized(headers, secret) {
   return Boolean(secret) && headers.authorization === "Bearer " + secret;
@@ -25,7 +32,7 @@ function formatOffset(utcOffsetSeconds) {
   return sign + hh + ":" + mm;
 }
 
-function buildReading(weather, waqi) {
+function buildReading(weather, waqi, air) {
   const current = weather.current;
   const iaqi = (waqi.data && waqi.data.iaqi) || {};
   const value = (k) => (iaqi[k] && typeof iaqi[k].v === "number" ? iaqi[k].v : undefined);
@@ -43,6 +50,10 @@ function buildReading(weather, waqi) {
   for (const key of ["pm1", "pm25", "pm10", "no2", "o3", "so2", "co"]) {
     const v = value(key);
     if (v !== undefined) reading[key] = v;
+  }
+  const aq = (air && air.current) || {};
+  for (const [src, key] of GAS_SOURCE_MAP) {
+    if (!(key in reading) && typeof aq[src] === "number") reading[key] = aq[src];
   }
   return reading;
 }
@@ -80,6 +91,17 @@ function validateWaqi(waqi) {
   return null;
 }
 
+function validateAir(air) {
+  if (!air) return "air: empty body";
+  if (air.error) return "air: " + (air.reason || "API error");
+  const c = air.current;
+  if (!c) return "air: missing current";
+  for (const k of ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone"]) {
+    if (c[k] !== undefined && (typeof c[k] !== "number" || c[k] < 0)) return "air: bad " + k;
+  }
+  return null;
+}
+
 function validateFreshness(recordedAt, utcOffsetSeconds, nowSeconds) {
   const s = toEpochSeconds(recordedAt, utcOffsetSeconds);
   if (s === null) return "weather: unparseable time";
@@ -102,12 +124,17 @@ module.exports = async (req, res) => {
       `latitude=${LAT}&longitude=${LON}` +
       `&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,is_day` +
       `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`;
-    const [weatherRes, waqiRes] = await Promise.all([
+    const airParams =
+      `latitude=${LAT}&longitude=${LON}` +
+      `&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone&timezone=auto`;
+    const [weatherRes, waqiRes, airRes] = await Promise.all([
       fetch(`${WEATHER_URL}?${params}`),
       fetch(`${WAQI_URL}?token=${process.env.AQI_API_KEY}`),
+      fetch(`${AIR_URL}?${airParams}`),
     ]);
     const weather = await weatherRes.json().catch(() => null);
     const waqi = await waqiRes.json().catch(() => null);
+    const air = await airRes.json().catch(() => null);
 
     const weatherErr = validateWeather(weather);
     if (weatherErr) {
@@ -119,6 +146,11 @@ module.exports = async (req, res) => {
       res.status(502).json({ error: waqiErr });
       return;
     }
+    const airErr = validateAir(air);
+    if (airErr) {
+      res.status(502).json({ error: airErr });
+      return;
+    }
     const offset = weather.utc_offset_seconds || 18000;
     const freshErr = validateFreshness(weather.current.time, offset, Math.floor(Date.now() / 1000));
     if (freshErr) {
@@ -126,7 +158,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const reading = buildReading(weather, waqi);
+    const reading = buildReading(weather, waqi, air);
     const score = toEpochSeconds(reading.recorded_at, offset);
 
     const redis = new Redis({
@@ -150,4 +182,5 @@ module.exports.formatOffset = formatOffset;
 module.exports.buildReading = buildReading;
 module.exports.validateWeather = validateWeather;
 module.exports.validateWaqi = validateWaqi;
+module.exports.validateAir = validateAir;
 module.exports.validateFreshness = validateFreshness;

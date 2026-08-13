@@ -7,6 +7,7 @@ const {
   buildReading,
   validateWeather,
   validateWaqi,
+  validateAir,
   validateFreshness,
 } = require("../api/ingest.js");
 
@@ -46,6 +47,20 @@ const waqi = {
   },
 };
 
+const air = {
+  utc_offset_seconds: 18000,
+  current: {
+    time: "2026-08-13T14:00",
+    interval: 3600,
+    pm10: 59.5,
+    pm2_5: 56.1,
+    carbon_monoxide: 605,
+    nitrogen_dioxide: 4.6,
+    sulphur_dioxide: 18.3,
+    ozone: 259,
+  },
+};
+
 test("isAuthorized requires a secret and a matching bearer", () => {
   assert.equal(isAuthorized({ authorization: "Bearer s3cr3t" }, "s3cr3t"), true);
   assert.equal(isAuthorized({ authorization: "Bearer wrong" }, "s3cr3t"), false);
@@ -61,7 +76,7 @@ test("toEpochSeconds converts naive local + offset to epoch", () => {
 });
 
 test("buildReading maps both providers into the stored contract", () => {
-  const r = buildReading(weather, waqi);
+  const r = buildReading(weather, waqi, air);
   assert.equal(r.recorded_at, "2026-08-13T14:00+05:00");
   assert.equal(r.temperature_c, 36.7);
   assert.equal(r.feels_like_c, 42.9);
@@ -74,10 +89,38 @@ test("buildReading maps both providers into the stored contract", () => {
   assert.equal(r.pm1, 154);
   assert.equal(r.pm25, 179);
   assert.equal(r.pm10, 77);
-  assert.ok(!("no2" in r), "no2 must be absent when the station does not measure it");
-  assert.ok(!("o3" in r));
-  assert.ok(!("so2" in r));
-  assert.ok(!("co" in r));
+});
+
+test("buildReading fills gases from CAMS when the station does not measure them", () => {
+  const r = buildReading(weather, waqi, air);
+  assert.equal(r.no2, 4.6);
+  assert.equal(r.so2, 18.3);
+  assert.equal(r.o3, 259);
+  assert.equal(r.co, 605);
+});
+
+test("buildReading keeps station gas values over CAMS when the station measures them", () => {
+  const stationWaqi = {
+    status: "ok",
+    data: {
+      aqi: 150,
+      dominentpol: "pm25",
+      city: { name: "Lahore" },
+      iaqi: { no2: { v: 88 } },
+    },
+  };
+  const r = buildReading(weather, stationWaqi, air);
+  assert.equal(r.no2, 88);
+});
+
+test("validateAir accepts the live-shaped response and rejects bad ones", () => {
+  assert.equal(validateAir(air), null);
+  assert.equal(validateAir(null), "air: empty body");
+  assert.equal(validateAir({ error: true, reason: "nope" }), "air: nope");
+  assert.equal(validateAir({ current: null }), "air: missing current");
+  assert.equal(validateAir({ current: { pm10: -1 } }), "air: bad pm10");
+  assert.equal(validateAir({ current: { ozone: "hi" } }), "air: bad ozone");
+  assert.equal(validateAir({ current: { pm10: 59.5, carbon_monoxide: undefined } }), null);
 });
 
 test("formatOffset renders an ISO offset from seconds", () => {
