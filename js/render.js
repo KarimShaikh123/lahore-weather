@@ -1,8 +1,23 @@
 (function () {
+  const SKY_BY_ICON = {
+    clear: "clear",
+    partly: "partly",
+    cloud: "overcast",
+    fog: "overcast",
+    drizzle: "storm",
+    rain: "storm",
+    showers: "storm",
+    snow: "storm",
+    "snow-showers": "storm",
+    thunder: "storm",
+    unknown: "overcast",
+  };
+
   function render(reading, $) {
+    const iconKey = LWData.weatherIconKey(reading.weather_code);
     const iconEl = $("w-icon");
-    iconEl.innerHTML = LW_ICONS[LWData.weatherIconKey(reading.weather_code)] || LW_ICONS.unknown;
-    iconEl.dataset.weather = LWData.weatherIconKey(reading.weather_code);
+    iconEl.innerHTML = LW_ICONS[iconKey] || LW_ICONS.unknown;
+    iconEl.dataset.weather = iconKey;
 
     $("w-temp").textContent = Math.round(reading.temperature_c) + "°";
     $("w-condition").textContent = LWData.weatherCodeLabel(reading.weather_code);
@@ -29,6 +44,7 @@
     marker.dataset.cat = cat.key;
 
     document.body.dataset.theme = reading.is_day === 1 ? "day" : "night";
+    document.body.dataset.sky = SKY_BY_ICON[iconKey] || "overcast";
   }
 
   window.LW = { render };
