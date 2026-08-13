@@ -1,0 +1,17 @@
+{
+  "recorded_at": "2026-08-13T14:00:00+05:00",
+  "temperature_c": 36.7,
+  "feels_like_c": 42.9,
+  "humidity_pct": 50,
+  "weather_code": 51,
+  "wind_kmh": 5.3,
+  "is_day": 1,
+  "aqi": 180,
+  "dominant_pollutant": "pm25",
+  "pm25": 62.9,
+  "pm10": 66.1,
+  "no2": 5.7,
+  "o3": 277,
+  "so2": 21,
+  "co": 676
+}

@@ -18,15 +18,15 @@ A dashboard showing Lahore's current weather and air quality at a glance — ope
 Built in small reviewed steps:
 
 1. README + AGENTS.md (done)
-2. Scaffold — git, GitHub repo, gitignore, env contract, Vercel config (pending)
-3. Weather probe — prove Open-Meteo field map for Lahore (pending)
-4. AQI probe — prove WAQI station readings for Lahore (pending)
-5. Provision Upstash Redis + schema (pending)
-6. Ingest endpoint — fetch, validate, store (pending)
-7. Hourly scheduler via GitHub Actions (pending)
-8. Readings endpoint — latest + history (pending)
-9. Interface — weather + AQI on one screen (pending)
-10. Client loading / error / staleness handling (pending)
+2. Scaffold — git, GitHub repo, gitignore, env contract, Vercel config (done)
+3. Weather probe — prove Open-Meteo field map for Lahore (done)
+4. AQI probe — schema pinned; real Lahore readings blocked on the WAQI token (in progress)
+5. Interface — weather + AQI on one screen, renders a sample mock (done)
+6. Provision Upstash Redis + schema (pending)
+7. Ingest endpoint — fetch, validate, store (pending)
+8. Hourly scheduler via GitHub Actions (pending)
+9. Readings endpoint — latest + history (pending)
+10. Swap interface mock → real endpoint (pending)
 11. Security audit (pending)
 12. Polish (pending)
 13. Test everything (pending)
@@ -50,8 +50,12 @@ Connected to GitHub; pushes to `main` auto-deploy to Vercel. Serverless function
 - `AGENTS.md` — stack, conventions, commands, API domain rules, and secret-handling rules for any AI agent working on this repo
 - `.env.example` — placeholder names for every secret; never real values
 - `index.html` — page layout
-- `styles.css` — all styling (house tokens: `--ink`, `--paper`, `--lime`, `--coral`, `--blue`, `--error`, `--line`)
-- `js/` — frontend fetch + render
+- `styles.css` — all styling (house tokens: `--ink`, `--paper`, `--lime`, `--coral`, `--blue`, `--error`, `--line` + AQI category colours `--aqi-*`)
+- `js/data.js` — pure logic: AQI category, WMO weather-code labels, staleness formatting
+- `js/render.js` — fills the page from a reading
+- `js/app.js` — fetch + loading/error/staleness; reads `./sample-reading.json` until the real endpoint lands
+- `sample-reading.json` — mock reading; defines the stored-reading contract
+- `test/data.test.js` — `node:test` unit tests
 - `api/ingest.js` — hourly data collector: fetch both APIs, validate, write to Redis
 - `api/readings.js` — serves latest + history to the dashboard
 - `.github/workflows/ingest.yml` — hourly cron that calls `/api/ingest`

@@ -16,7 +16,7 @@ Living checklist — update the tick in the same commit that completes the task.
 - [x] Task 1 — Scaffold: git init, private GitHub repo `lahore-weather`, local git identity, `.gitignore` (`.env.local`, `node_modules`, `.vercel`, `dist`), `.env.example` (placeholders only), `package.json` with `@upstash/redis` (version from `npm view`), `vercel.json` (cleanUrls + nosniff)
 - [x] Task 2 — Weather probe: throwaway script proves Open-Meteo field map for Lahore (lat 31.558, lon 74.35071); pinned fields + `current_units`; discard after
 - [ ] Task 3 — AQI probe: throwaway script proves WAQI station `A471607` readings using `AQI_API_KEY` from `.env.local`; handles 200-but-`data:null` and missing-key gracefully; discard after
-- [ ] Task 4 — Interface (pulled forward so the owner can review it early): `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI); loading/error/staleness states; renders a sample-reading JSON mock (no backend needed) — swap to the real endpoint happens in Task 9
+- [x] Task 4 — Interface (pulled forward so the owner can review it early): `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI); loading/error/staleness states; renders a sample-reading JSON mock (no backend needed) — swap to the real endpoint happens in Task 9
 - [ ] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days)
 - [ ] Task 6 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup
 - [ ] Task 7 — `.github/workflows/ingest.yml`: hourly cron, POSTs with `CRON_SECRET` from GitHub Actions secrets
@@ -87,13 +87,44 @@ Open-Meteo `current` object for Lahore (lat 31.558, lon 74.35071, `timezone=auto
 
 ### WAQI contract (schema verified 2026-08-13, task 3; real Lahore values still pending a real token)
 
-- Endpoint: `https://api.waqi.info/feed/<station>/?token=AQI_API_KEY`
+- Endpoint: `https://api.waqi.info/feed/lahore/?token=AQI_API_KEY` — the **city feed** (`/feed/lahore/`), verified to exist on aqicn.org/city/lahore (2026-08-13: overall AQI 128, PM2.5 128, PM10 68, NO2 3, SO2 3, O3 5, CO 3; source: Pakistan Air Quality Monitor - US EPA). Prefer the city feed over the station feeds (`A471607`, `A74005`, `A540730` exist but their identity could not be verified without a real token — the demo token returned a different station for `A471607`).
 - Top level: `status` (`"ok"` | `"error"`) and `data` (object, or `null` when station is offline). Check `data` for null — do not trust `status` alone.
 - `data.aqi` — US AQI 0–500. `data.dominentpol` — dominant pollutant key (e.g. `pm25`).
 - `data.iaqi` — pollutant map, **only keys the station actually measures** (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`, `h`, `p`, `t`, `w`), each `{ v: <number> }`. Never assume a pollutant key exists.
 - `data.city.name` + `data.city.geo` — verify these say Lahore when the real token lands; a wrong-station response must be rejected, not stored.
 - `data.time.iso` — reading time, ISO with offset (e.g. `2026-08-13T16:00:00+08:00`).
 - **Trap (verified): the public `token=demo` is hardcoded to fake data** — `feed/lahore/?token=demo` returned Shanghai, `feed/A471607/?token=demo` returned Bend, Oregon. The demo token is useless for verifying Lahore; the real token is required.
+- `data.iaqi` values carry **no unit field** — render them as-is; do not assert or invent units for WAQI pollutants.
+
+### Stored reading contract (pinned 2026-08-13, task 4 — the mock `sample-reading.json` defines it; ingest task 6 must produce it, readings task 8 must serve it)
+
+One flat JSON object per hourly snapshot:
+
+```json
+{
+  "recorded_at": "2026-08-13T14:00:00+05:00",
+  "temperature_c": 36.7,
+  "feels_like_c": 42.9,
+  "humidity_pct": 50,
+  "weather_code": 51,
+  "wind_kmh": 5.3,
+  "is_day": 1,
+  "aqi": 180,
+  "dominant_pollutant": "pm25",
+  "pm25": 62.9, "pm10": 66.1, "no2": 5.7, "o3": 277, "so2": 21, "co": 676
+}
+```
+
+Pollutants are optional keys (`pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) — a station may not measure all of them; render missing ones as `—`.
+
+### Frontend (task 4)
+
+- `js/data.js` — pure logic: `aqiCategory`, `weatherCodeLabel`, `formatStaleness`; browser global `window.LWData`, Node export for tests.
+- `js/render.js` — `LW.render(reading, $)` fills the DOM ids from a reading; AQI colour via `data-cat` attribute.
+- `js/app.js` — fetches `READINGS_URL` (currently `./sample-reading.json` — the mock; **task 9 changes this one constant to `/api/readings`**), handles loading/error/staleness.
+- `test/data.test.js` — `node:test` unit tests for `js/data.js`. DOM wiring is verified by opening the page (house convention).
+- Script load order in `index.html` matters: `data.js` → `render.js` → `app.js`.
+- Run tests: `npm test` (the `test` script is `node --test`).
 - Ingest must be idempotent: `ZADD` is keyed on epoch, so a double-fired cron never stores a duplicate reading for the same hour.
 - Stale data must be visible to users: the dashboard renders "last read Xh ago", so a dead cron or failed write is never silent.
 

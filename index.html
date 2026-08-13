@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Lahore's live weather and air quality at a glance." />
+    <title>Lahore Weather + Air Quality</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="wordmark" href="#top">Lahore<span>·</span>Weather</a>
+        <span class="tagline">Live weather + air quality</span>
+      </header>
+
+      <p class="staleness" id="staleness" hidden></p>
+
+      <main id="top" class="dashboard">
+        <section class="panel weather-panel" aria-label="Lahore weather">
+          <h2>Weather</h2>
+          <div class="reading-big" id="w-temp">—</div>
+          <p class="reading-label" id="w-condition">Loading…</p>
+          <ul class="reading-list">
+            <li>Feels like <strong id="w-feels">—</strong></li>
+            <li>Humidity <strong id="w-humidity">—</strong></li>
+            <li>Wind <strong id="w-wind">—</strong></li>
+          </ul>
+        </section>
+
+        <section class="panel aqi-panel" aria-label="Lahore air quality">
+          <h2>Air Quality</h2>
+          <div class="aqi-value" id="aqi-value">—</div>
+          <p class="reading-label" id="aqi-label">Loading…</p>
+          <p class="reading-label" id="aqi-dominant" hidden></p>
+          <ul class="pollutant-list">
+            <li>PM2.5 <strong id="aqi-pm25">—</strong></li>
+            <li>PM10 <strong id="aqi-pm10">—</strong></li>
+            <li>NO₂ <strong id="aqi-no2">—</strong></li>
+            <li>O₃ <strong id="aqi-o3">—</strong></li>
+            <li>SO₂ <strong id="aqi-so2">—</strong></li>
+            <li>CO <strong id="aqi-co">—</strong></li>
+          </ul>
+        </section>
+      </main>
+
+      <p class="error-banner" id="error-banner" role="alert" hidden></p>
+
+      <footer class="site-footer">
+        <p>Weather: Open-Meteo · CAMS · Air: WAQI · Built by Karim Shaikh</p>
+      </footer>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/render.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
