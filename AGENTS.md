@@ -5,7 +5,7 @@
 - Plain HTML/CSS/JS frontend (no framework, no build step) + Node serverless functions in `api/` (Vercel auto-detects them, no framework). CommonJS, not ES modules — matches markdown-blog.
 - Storage: Upstash Redis (provisioned via Vercel Marketplace; REST-based, serverless-safe). `@upstash/redis` is the only runtime dependency — pin the version from the registry at install (`npm view @upstash/redis version`), never from memory.
 - Data: Open-Meteo (weather, keyless) + WAQI (air quality, keyed, Lahore station `A471607`).
-- Formula: GitHub + Vercel + OpenCode. Repo: https://github.com/KarimShaikh123/lahore-weather (private). Live URL set at deploy.
+- Formula: GitHub + Vercel + OpenCode. Repo: https://github.com/KarimShaikh123/lahore-weather (private). Vercel project linked 2026-08-13 (account karimhshaikh009-7588, project `lahore-weather`, GitHub repo connected, auto-deploy on push enabled). `.vercel/` holds the link (`projectId`/`orgId`) and `.env.local` holds a short-lived `VERCEL_OIDC_TOKEN` written by `vercel link` — both gitignored, never commit either. Live URL set at deploy.
 - Tests: Node's built-in test runner (`node:test`) — no test framework dependency. Every feature ships with its test in the same commit.
 
 ## Project status
