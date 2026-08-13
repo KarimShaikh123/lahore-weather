@@ -3,6 +3,7 @@ const assert = require("node:assert");
 const {
   isAuthorized,
   toEpochSeconds,
+  formatOffset,
   buildReading,
   validateWeather,
   validateWaqi,
@@ -61,7 +62,7 @@ test("toEpochSeconds converts naive local + offset to epoch", () => {
 
 test("buildReading maps both providers into the stored contract", () => {
   const r = buildReading(weather, waqi);
-  assert.equal(r.recorded_at, "2026-08-13T14:00");
+  assert.equal(r.recorded_at, "2026-08-13T14:00+05:00");
   assert.equal(r.temperature_c, 36.7);
   assert.equal(r.feels_like_c, 42.9);
   assert.equal(r.humidity_pct, 50);
@@ -77,6 +78,13 @@ test("buildReading maps both providers into the stored contract", () => {
   assert.ok(!("o3" in r));
   assert.ok(!("so2" in r));
   assert.ok(!("co" in r));
+});
+
+test("formatOffset renders an ISO offset from seconds", () => {
+  assert.equal(formatOffset(18000), "+05:00");
+  assert.equal(formatOffset(-18000), "-05:00");
+  assert.equal(formatOffset(0), "+00:00");
+  assert.equal(formatOffset(19800), "+05:30");
 });
 
 test("validateWeather accepts the live-shaped response", () => {

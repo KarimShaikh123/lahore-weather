@@ -26,7 +26,7 @@ Built in small reviewed steps:
 7. Ingest endpoint — fetch, validate, store (done)
 8. Hourly scheduler via GitHub Actions (done)
 9. Readings endpoint — latest + history (done)
-10. Swap interface mock → real endpoint (pending)
+10. Interface reads real /api/readings (done)
 11. Security audit (pending)
 12. Polish (pending)
 13. Test everything (pending)

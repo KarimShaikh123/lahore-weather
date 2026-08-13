@@ -17,12 +17,20 @@ function toEpochSeconds(naiveLocal, utcOffsetSeconds) {
   return Math.round((Date.UTC(y, mo - 1, d, h, mi) - utcOffsetSeconds * 1000) / 1000);
 }
 
+function formatOffset(utcOffsetSeconds) {
+  const sign = utcOffsetSeconds < 0 ? "-" : "+";
+  const abs = Math.abs(utcOffsetSeconds);
+  const hh = String(Math.floor(abs / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((abs % 3600) / 60)).padStart(2, "0");
+  return sign + hh + ":" + mm;
+}
+
 function buildReading(weather, waqi) {
   const current = weather.current;
   const iaqi = (waqi.data && waqi.data.iaqi) || {};
   const value = (k) => (iaqi[k] && typeof iaqi[k].v === "number" ? iaqi[k].v : undefined);
   const reading = {
-    recorded_at: current.time,
+    recorded_at: current.time + formatOffset(weather.utc_offset_seconds),
     temperature_c: current.temperature_2m,
     feels_like_c: current.apparent_temperature,
     humidity_pct: current.relative_humidity_2m,
@@ -138,6 +146,7 @@ module.exports = async (req, res) => {
 
 module.exports.isAuthorized = isAuthorized;
 module.exports.toEpochSeconds = toEpochSeconds;
+module.exports.formatOffset = formatOffset;
 module.exports.buildReading = buildReading;
 module.exports.validateWeather = validateWeather;
 module.exports.validateWaqi = validateWaqi;

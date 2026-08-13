@@ -1,5 +1,5 @@
 (function () {
-  const READINGS_URL = "./sample-reading.json";
+  const READINGS_URL = "/api/readings";
   const $ = (id) => document.getElementById(id);
 
   function showError(msg) {
@@ -33,7 +33,12 @@
     try {
       const res = await fetch(READINGS_URL);
       if (!res.ok) throw new Error("bad status " + res.status);
-      const reading = await res.json();
+      const payload = await res.json();
+      const reading = payload.latest;
+      if (!reading) {
+        showError("No readings yet — the hourly collector will fill this in.");
+        return;
+      }
       LW.render(reading, $);
       const stale = LWData.formatStaleness(reading.recorded_at, new Date());
       $("staleness").textContent = stale;
