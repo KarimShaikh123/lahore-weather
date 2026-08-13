@@ -3,7 +3,7 @@
 ## Stack
 
 - Plain HTML/CSS/JS frontend (no framework, no build step) + Node serverless functions in `api/` (Vercel auto-detects them, no framework). CommonJS, not ES modules — matches markdown-blog.
-- Storage: Upstash Redis (provisioned via Vercel Marketplace; REST-based, serverless-safe). `@upstash/redis` is the only runtime dependency — pin the version from the registry at install (`npm view @upstash/redis version`), never from memory.
+- Storage: Upstash Redis (provisioned via Vercel Marketplace; REST-based, serverless-safe). `@upstash/redis` is the only runtime dependency — pin the version from the registry at install (`npm view @upstash/redis version`), never from memory. Env vars are injected by the Upstash integration: `KV_REST_API_URL` + `KV_REST_API_TOKEN` (read/write), `KV_REST_API_READ_ONLY_TOKEN` (read-only), `KV_URL`/`REDIS_URL` (TCP).
 - Data: Open-Meteo (weather, keyless) + WAQI (air quality, keyed, Lahore station `A471607`).
 - Formula: GitHub + Vercel + OpenCode. Repo: https://github.com/KarimShaikh123/lahore-weather (private). Vercel project linked 2026-08-13 (account karimhshaikh009-7588, project `lahore-weather`, GitHub repo connected, auto-deploy on push enabled). `.vercel/` holds the link (`projectId`/`orgId`) and `.env.local` holds a short-lived `VERCEL_OIDC_TOKEN` written by `vercel link` — both gitignored, never commit either. Live URL set at deploy.
 - Tests: Node's built-in test runner (`node:test`) — no test framework dependency. Every feature ships with its test in the same commit.
@@ -17,7 +17,7 @@ Living checklist — update the tick in the same commit that completes the task.
 - [x] Task 2 — Weather probe: throwaway script proves Open-Meteo field map for Lahore (lat 31.558, lon 74.35071); pinned fields + `current_units`; discard after
 - [x] Task 3 — AQI probe: throwaway script proves WAQI station `A471607` readings using `AQI_API_KEY` from `.env.local`; handles 200-but-`data:null` and missing-key gracefully; discard after. Verified real Lahore data 2026-08-13 (AQI 179, fresh); city feed proven stale — use the station feed
 - [x] Task 4 — Interface (pulled forward so the owner can review it early): `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI); loading/error/staleness states; renders a sample-reading JSON mock (no backend needed) — swap to the real endpoint happens in Task 9
-- [ ] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days)
+- [x] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days). Verified live 2026-08-13: PING PONG on `logical-loon-118735.upstash.io`, ZADD→ZRANGE round-trip, dedup via `zremrangebyscore`, prune via `zremrangebyrank`, cleanup. Scheme pinned below
 - [ ] Task 6 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup
 - [ ] Task 7 — `.github/workflows/ingest.yml`: hourly cron, POSTs with `CRON_SECRET` from GitHub Actions secrets
 - [ ] Task 8 — `api/readings.js`: latest via `ZREVRANGE 0 0`, history via `ZRANGE`
@@ -34,12 +34,22 @@ GH Actions cron (hourly) ──POST /api/ingest──▶ verify Bearer CRON_SECR
     ├─ GET Open-Meteo weather   (keyless, lat 31.558, lon 74.35071)
     ├─ GET WAQI station A471607  (key AQI_API_KEY, server-side only)
     ├─ validate response (ok, error key, units, ranges, station-offline)
-    └─ ZADD readings {epoch} {json}  → Upstash Redis, prune to last 720 (~30 days)
+    └─ zremrangebyscore readings {score} {score} → zadd readings {score} {json} → zremrangebyrank readings 0 -721
+       (sorted set `readings`, score = epoch seconds of the reading's hour; prune keeps newest 720 ≈ 30 days)
 
 Browser ──GET /api/readings──▶
-    ├─ ZREVRANGE 0 0   → current conditions
-    └─ ZRANGE 0 -1     → history window
+    ├─ ZRANGE readings -1 -1  → current conditions (latest)
+    └─ ZRANGE readings 0 -1   → history window
 ```
+
+### Redis key scheme + client facts (verified live 2026-08-13, task 5)
+
+- Provisioning (for reference / recreate): `vercel install upstash/upstash-kv --plan free --name lahore-weather` needs a TTY (spinner + "Successfully provisioned"); once the integration is installed it can be driven non-interactively with `script -qec "…"` + `--installation-id <id>`. The install does NOT connect the resource to the project — that step (`vercel integration-resource connect lahore-weather --yes`) is what injects the env vars. No project env vars appear until the resource is connected.
+- Env vars injected (all 3 environments, mirrored into `.env.local`): `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, `REDIS_URL`. Use `KV_REST_API_URL` + `KV_REST_API_TOKEN` for the REST client; never hardcode.
+- Key scheme: ONE sorted set `readings`. Score = unix epoch **seconds** of the reading's hour (deterministic within the hour → dedup). Member = the flat stored-reading JSON string.
+- Ingest write order: `zremrangebyscore("readings", score, score)` (clear any same-hour member) → `zadd("readings", { score, member })` → `zremrangebyrank("readings", 0, -721)` (keep newest 720 ≈ 30 days).
+- Reads: latest = `zrange("readings", -1, -1)`; history = `zrange("readings", 0, -1)`.
+- @upstash/redis v1.38.2 facts (checked the installed package, not assumed): **there is no `zrevrange`** — the last element is `zrange(key, -1, -1)`; `automaticDeserialization` is ON, so JSON members come back already parsed (objects, not strings); `zrem(key, memberObject)` works while `zrem(key, rawString)` can miss; pruning uses `zremrangebyrank`. Latency ~0.6–0.9s per REST call — fine for an hourly cron.
 
 The browser only ever talks to `/api/readings`. API keys never reach the browser.
 
@@ -57,7 +67,7 @@ The browser only ever talks to `/api/readings`. API keys never reach the browser
 
 - `AQI_API_KEY` — WAQI token
 - `CRON_SECRET` — bearer token shared between the GitHub Actions cron and `/api/ingest`
-- `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` — injected by the Vercel Marketplace integration; in `.env.local` for dev
+- `KV_REST_API_URL`, `KV_REST_API_TOKEN` (read/write) + `KV_REST_API_READ_ONLY_TOKEN` (read-only) — injected by the Upstash Vercel integration into the project; mirrored into `.env.local` for dev
 - Real values live ONLY in: Vercel env vars, GitHub Actions secrets, and `.env.local` (gitignored). `.env.example` holds placeholder names only.
 - Before any commit that touches secrets/config, run a grep audit for real key material. A leak found later is a rotation, not a fix.
 
@@ -131,7 +141,7 @@ Pollutants are optional keys (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) �
 - `test/data.test.js` — `node:test` unit tests for `js/data.js`. DOM wiring is verified by opening the page (house convention) + the throwaway `/tmp/opencode/render-smoke.js`.
 - Script load order in `index.html` matters: `data.js` → `icons.js` → `render.js` → `app.js`.
 - Run tests: `npm test` (the `test` script is `node --test`).
-- Ingest must be idempotent: `ZADD` is keyed on epoch, so a double-fired cron never stores a duplicate reading for the same hour.
+- Ingest must be idempotent: score = epoch of the reading's hour, and ingest does `zremrangebyscore` (same hour) → `zadd`, so a double-fired cron never stores a duplicate reading for the same hour.
 - Stale data must be visible to users: the dashboard renders "last read Xh ago", so a dead cron or failed write is never silent.
 
 ## Conventions
