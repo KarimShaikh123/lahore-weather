@@ -72,7 +72,21 @@ function weatherIconKey(code) {
 
 function aqiPosition(aqi) {
   if (!Number.isFinite(aqi)) return 0;
-  return Math.max(0, Math.min(100, (aqi / 500) * 100));
+  const v = Math.max(0, Math.min(500, aqi));
+  const bands = [
+    [0, 50],
+    [51, 100],
+    [101, 150],
+    [151, 200],
+    [201, 300],
+    [301, 500],
+  ];
+  let i = 0;
+  for (; i < bands.length; i++) if (v <= bands[i][1]) break;
+  i = Math.min(i, bands.length - 1);
+  const [lo, hi] = bands[i];
+  const frac = (v - lo) / (hi - lo);
+  return Math.max(0, Math.min(100, ((i + frac) / bands.length) * 100));
 }
 
 const LWData = { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition };

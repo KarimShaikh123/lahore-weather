@@ -65,7 +65,13 @@ h1, h2, h3, p { margin-top: 0; }
 .aqi-scale { margin: 20px 0 0; padding: 0 8px; }
 .aqi-track { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--aqi-good), var(--aqi-moderate), var(--aqi-usg), var(--aqi-unhealthy), var(--aqi-very), var(--aqi-hazardous)); }
 .aqi-marker { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--panel); border: 3px solid var(--ink); transform: translate(-50%, -50%); transition: left 0.4s ease; }
-.aqi-scale-legend { list-style: none; display: flex; justify-content: space-between; margin: 8px 0 0; padding: 0; font: 500 10px/1.2 "DM Mono", monospace; color: var(--ink-faint); }
+.aqi-scale-legend { list-style: none; display: grid; grid-template-columns: repeat(6, 1fr); margin: 8px 0 0; padding: 0; font: 700 10px/1.2 "DM Mono", monospace; text-align: center; }
+.aqi-scale-legend li:nth-child(1) { color: var(--aqi-good); }
+.aqi-scale-legend li:nth-child(2) { color: var(--aqi-moderate); }
+.aqi-scale-legend li:nth-child(3) { color: var(--aqi-usg); }
+.aqi-scale-legend li:nth-child(4) { color: var(--aqi-unhealthy); }
+.aqi-scale-legend li:nth-child(5) { color: var(--aqi-very); }
+.aqi-scale-legend li:nth-child(6) { color: var(--aqi-hazardous); }
 
 .pollutant-list { list-style: none; margin: 18px 0 0; padding: 16px 0 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
 .pollutant-list li { display: flex; justify-content: space-between; font-size: 13px; line-height: 1.7; color: var(--ink-soft); }

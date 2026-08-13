@@ -65,9 +65,17 @@ test("weatherIconKey maps WMO ranges", () => {
   assert.equal(weatherIconKey(999), "unknown");
 });
 
-test("aqiPosition clamps to the 0–500 scale", () => {
+test("aqiPosition maps through six equal category bands", () => {
   assert.equal(aqiPosition(0), 0);
-  assert.equal(aqiPosition(250), 50);
+  assert.equal(aqiPosition(50).toFixed(1), "16.7");
+  assert.equal(aqiPosition(51).toFixed(1), "16.7");
+  assert.equal(aqiPosition(100).toFixed(1), "33.3");
+  assert.equal(aqiPosition(150).toFixed(1), "50.0");
+  assert.equal(aqiPosition(180).toFixed(1), "59.9");
+  assert.equal(aqiPosition(200).toFixed(1), "66.7");
+  assert.equal(aqiPosition(250).toFixed(1), "74.9");
+  assert.equal(aqiPosition(300).toFixed(1), "83.3");
+  assert.equal(aqiPosition(301).toFixed(1), "83.3");
   assert.equal(aqiPosition(500), 100);
   assert.equal(aqiPosition(1000), 100);
   assert.equal(aqiPosition(-10), 0);

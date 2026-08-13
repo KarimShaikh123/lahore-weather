@@ -40,16 +40,15 @@
           <h2>Air Quality</h2>
           <div class="aqi-value" id="aqi-value">—</div>
           <p class="reading-label" id="aqi-label">Loading…</p>
-          <div class="aqi-scale" aria-label="Air Quality Index scale from 0 to 500">
+          <div class="aqi-scale" aria-label="Air Quality Index from Good to Hazardous">
             <div class="aqi-track"><div class="aqi-marker" id="aqi-marker"></div></div>
             <ul class="aqi-scale-legend">
-              <li>0</li>
-              <li>50</li>
-              <li>100</li>
-              <li>150</li>
-              <li>200</li>
-              <li>300</li>
-              <li>500</li>
+              <li>Good</li>
+              <li>Moderate</li>
+              <li>Sensitive</li>
+              <li>Unhealthy</li>
+              <li>Very</li>
+              <li>Hazardous</li>
             </ul>
           </div>
           <p class="reading-label" id="aqi-dominant" hidden></p>
@@ -72,6 +71,7 @@
     </div>
 
     <script src="js/data.js"></script>
+    <script src="js/icons.js"></script>
     <script src="js/render.js"></script>
     <script src="js/app.js"></script>
   </body>
