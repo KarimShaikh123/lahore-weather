@@ -4,6 +4,7 @@
   "private": true,
   "description": "Lahore weather + air quality dashboard",
   "scripts": {
+    "build": "echo no-build",
     "test": "node --test"
   },
   "dependencies": {
