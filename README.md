@@ -29,7 +29,7 @@ Built in small reviewed steps:
 10. Interface reads real /api/readings (done)
 11. Security audit (done)
 12. Polish (done)
-13. Test everything (pending)
+13. Test everything (done)
 14. Deploy + final review (pending)
 
 ## Run locally
