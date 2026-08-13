@@ -84,6 +84,16 @@ Open-Meteo `current` object for Lahore (lat 31.558, lon 74.35071, `timezone=auto
 - Open-Meteo current fields: `temperature_2m`, `apparent_temperature`, `relative_humidity_2m`, `weather_code`, `wind_speed_10m`, `is_day`; units arrive in `current_units` and must be asserted against the contract (`°C`, `%`, `km/h`), not just trusted.
 - Open-Meteo variable names are the long forms: `relative_humidity_2m`, `weather_code` — short aliases used by other providers do not exist here. Errors come back as HTTP 400 with an `error: true` body; check the body, not just the status.
 - WAQI: station `A471607` (Lahore). A response can be HTTP 200 with `data: null` (station offline) — that is an error state to surface, never a crash. `data.aqi` is US AQI 0–500; pollutant values are nested in `data.iaqi.*.v` (keys `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`).
+
+### WAQI contract (schema verified 2026-08-13, task 3; real Lahore values still pending a real token)
+
+- Endpoint: `https://api.waqi.info/feed/<station>/?token=AQI_API_KEY`
+- Top level: `status` (`"ok"` | `"error"`) and `data` (object, or `null` when station is offline). Check `data` for null — do not trust `status` alone.
+- `data.aqi` — US AQI 0–500. `data.dominentpol` — dominant pollutant key (e.g. `pm25`).
+- `data.iaqi` — pollutant map, **only keys the station actually measures** (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`, `h`, `p`, `t`, `w`), each `{ v: <number> }`. Never assume a pollutant key exists.
+- `data.city.name` + `data.city.geo` — verify these say Lahore when the real token lands; a wrong-station response must be rejected, not stored.
+- `data.time.iso` — reading time, ISO with offset (e.g. `2026-08-13T16:00:00+08:00`).
+- **Trap (verified): the public `token=demo` is hardcoded to fake data** — `feed/lahore/?token=demo` returned Shanghai, `feed/A471607/?token=demo` returned Bend, Oregon. The demo token is useless for verifying Lahore; the real token is required.
 - Ingest must be idempotent: `ZADD` is keyed on epoch, so a double-fired cron never stores a duplicate reading for the same hour.
 - Stale data must be visible to users: the dashboard renders "last read Xh ago", so a dead cron or failed write is never silent.
 
