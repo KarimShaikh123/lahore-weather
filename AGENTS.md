@@ -20,7 +20,7 @@ Living checklist — update the tick in the same commit that completes the task.
 - [x] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days). Verified live 2026-08-13: PING PONG on `logical-loon-118735.upstash.io`, ZADD→ZRANGE round-trip, dedup via `zremrangebyscore`, prune via `zremrangebyrank`, cleanup. Scheme pinned below
 - [x] Task 6 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup. E2E verified live 2026-08-13: real reading stored (36.2°C, AQI 171, pm25 dominant)
 - [x] Task 7 — `.github/workflows/ingest.yml`: hourly cron (`0 * * * *`), POSTs with `CRON_SECRET` from GitHub Actions secrets. Manual trigger via `workflow_dispatch`
-- [ ] Task 8 — `api/readings.js`: latest via `ZREVRANGE 0 0`, history via `ZRANGE`
+- [x] Task 8 — `api/readings.js`: latest via `zrange("readings", -1, -1)`, history via `zrange("readings", -168, -1)`. E2E verified live 2026-08-13 (latest = real reading, history[-1] === latest)
 - [ ] Task 9 — Swap interface mock → real `/api/readings` (single small commit; contract already pinned by the mock shape)
 - [ ] Task 10 — Security audit: no secrets in repo/logs, `CRON_SECRET` enforced, `.env.example` in sync, Redis token scoped
 - [ ] Task 11 — Polish: responsive breakpoints (820/560), empty states, AQI category contrast
@@ -146,7 +146,7 @@ Pollutants are optional keys (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) �
 
 - `api/ingest.js` — POST only. Bearer `CRON_SECRET` auth (`isAuthorized`); 405 on non-POST, 401 on bad auth, 502 on provider/validation failure, 500 on internal, 200 `{ ok, recorded_at, score, count }` on success. Fetches Open-Meteo (explicit `temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`, lat 31.558 lon 74.35071) and WAQI station feed in parallel; validates both (unit assertion °C/%/km/h, ranges, `is_day` 0/1, station-offline via `data:null`, wrong-city reject, freshness within ±2h/1h); builds the stored-reading contract; writes `zremrangebyscore(readings, score, score)` → `zadd` → `zremrangebyrank(readings, 0, -721)` prune.
 - **Keep the Redis client construction inside the handler** — tests `require("../api/ingest.js")` and must not construct a client (env vars may be unset in CI). Pure helpers are exported on `module.exports`: `isAuthorized`, `toEpochSeconds`, `buildReading`, `validateWeather`, `validateWaqi`, `validateFreshness`.
-- `api/readings.js` — task 8.
+- `api/readings.js` — GET only, public (the browser calls it). Returns `{ latest, history }`: `latest` = `zrange("readings", -1, -1)[0]` or `null` when the DB is empty; `history` = `zrange("readings", -168, -1)` (last 168 ≈ 7 days, ascending, includes the latest element). Members arrive auto-deserialized by the client. 405 on non-GET, 500 on internal. Pure `buildReadingsResponse(latestRows, historyRows)` exported for tests.
 - `test/ingest.test.js` — unit tests for the ingest helpers (no network): auth, epoch math, contract mapping (optional pollutants absent when the station doesn't measure them), validation errors, freshness.
 
 ### Hourly cron (task 7)

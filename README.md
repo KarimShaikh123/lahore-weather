@@ -25,7 +25,7 @@ Built in small reviewed steps:
 6. Provision Upstash Redis + schema (done)
 7. Ingest endpoint — fetch, validate, store (done)
 8. Hourly scheduler via GitHub Actions (done)
-9. Readings endpoint — latest + history (pending)
+9. Readings endpoint — latest + history (done)
 10. Swap interface mock → real endpoint (pending)
 11. Security audit (pending)
 12. Polish (pending)
