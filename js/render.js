@@ -24,6 +24,7 @@
     $("aqi-co").textContent = reading.co ?? "—";
 
     const marker = $("aqi-marker");
+    marker.hidden = false;
     marker.style.left = LWData.aqiPosition(reading.aqi) + "%";
     marker.dataset.cat = cat.key;
 

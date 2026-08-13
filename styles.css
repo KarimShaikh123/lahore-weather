@@ -15,6 +15,12 @@
   --aqi-unhealthy: #d64530;
   --aqi-very: #7a3d8f;
   --aqi-hazardous: #6e1f1f;
+  --aqi-good-text: #0b7138;
+  --aqi-moderate-text: #8a6a00;
+  --aqi-usg-text: #a5520f;
+  --aqi-unhealthy-text: #a82f1c;
+  --aqi-very-text: #5c2c6e;
+  --aqi-hazardous-text: #571717;
 }
 body[data-theme="night"] {
   --ink: #f4f2eb;
@@ -23,6 +29,12 @@ body[data-theme="night"] {
   --paper: #141a17;
   --panel: #1c2420;
   --line: rgba(244, 242, 235, 0.18);
+  --aqi-good-text: #35c77b;
+  --aqi-moderate-text: #f0c13f;
+  --aqi-usg-text: #ff9e52;
+  --aqi-unhealthy-text: #ff7a63;
+  --aqi-very-text: #c08cd6;
+  --aqi-hazardous-text: #e58a8a;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -54,24 +66,24 @@ h1, h2, h3, p { margin-top: 0; }
 .reading-list strong { color: var(--ink); font-weight: 700; }
 
 .aqi-value { font-size: 72px; font-weight: 800; letter-spacing: -0.05em; line-height: 1; }
-.aqi-value[data-cat="good"] { color: var(--aqi-good); }
-.aqi-value[data-cat="moderate"] { color: var(--aqi-moderate); }
-.aqi-value[data-cat="usg"] { color: var(--aqi-usg); }
-.aqi-value[data-cat="unhealthy"] { color: var(--aqi-unhealthy); }
-.aqi-value[data-cat="very-unhealthy"] { color: var(--aqi-very); }
-.aqi-value[data-cat="hazardous"] { color: var(--aqi-hazardous); }
+.aqi-value[data-cat="good"] { color: var(--aqi-good-text); }
+.aqi-value[data-cat="moderate"] { color: var(--aqi-moderate-text); }
+.aqi-value[data-cat="usg"] { color: var(--aqi-usg-text); }
+.aqi-value[data-cat="unhealthy"] { color: var(--aqi-unhealthy-text); }
+.aqi-value[data-cat="very-unhealthy"] { color: var(--aqi-very-text); }
+.aqi-value[data-cat="hazardous"] { color: var(--aqi-hazardous-text); }
 .aqi-value[data-cat="unknown"] { color: var(--ink-faint); }
 
 .aqi-scale { margin: 20px 0 0; padding: 0 8px; }
 .aqi-track { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--aqi-good), var(--aqi-moderate), var(--aqi-usg), var(--aqi-unhealthy), var(--aqi-very), var(--aqi-hazardous)); }
 .aqi-marker { position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; background: var(--panel); border: 3px solid var(--ink); transform: translate(-50%, -50%); transition: left 0.4s ease; }
 .aqi-scale-legend { list-style: none; display: grid; grid-template-columns: repeat(6, 1fr); margin: 8px 0 0; padding: 0; font: 700 10px/1.2 "DM Mono", monospace; text-align: center; }
-.aqi-scale-legend li:nth-child(1) { color: var(--aqi-good); }
-.aqi-scale-legend li:nth-child(2) { color: var(--aqi-moderate); }
-.aqi-scale-legend li:nth-child(3) { color: var(--aqi-usg); }
-.aqi-scale-legend li:nth-child(4) { color: var(--aqi-unhealthy); }
-.aqi-scale-legend li:nth-child(5) { color: var(--aqi-very); }
-.aqi-scale-legend li:nth-child(6) { color: var(--aqi-hazardous); }
+.aqi-scale-legend li:nth-child(1) { color: var(--aqi-good-text); }
+.aqi-scale-legend li:nth-child(2) { color: var(--aqi-moderate-text); }
+.aqi-scale-legend li:nth-child(3) { color: var(--aqi-usg-text); }
+.aqi-scale-legend li:nth-child(4) { color: var(--aqi-unhealthy-text); }
+.aqi-scale-legend li:nth-child(5) { color: var(--aqi-very-text); }
+.aqi-scale-legend li:nth-child(6) { color: var(--aqi-hazardous-text); }
 
 .pollutant-list { list-style: none; margin: 18px 0 0; padding: 16px 0 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
 .pollutant-list li { display: flex; justify-content: space-between; font-size: 13px; line-height: 1.7; color: var(--ink-soft); }
@@ -92,4 +104,7 @@ h1, h2, h3, p { margin-top: 0; }
   .pollutant-list { grid-template-columns: 1fr; }
   .weather-hero { gap: 14px; }
   .wi-slot { width: 72px; height: 72px; }
+  .reading-big { font-size: 44px; }
+  .aqi-value { font-size: 56px; }
+  .aqi-scale-legend { grid-template-columns: repeat(3, 1fr); row-gap: 4px; }
 }

@@ -8,7 +8,9 @@
     banner.hidden = false;
     $("w-condition").textContent = "Unavailable";
     $("aqi-value").textContent = "—";
+    $("aqi-value").dataset.cat = "unknown";
     $("aqi-label").textContent = "Unavailable";
+    $("aqi-marker").hidden = true;
   }
 
   function tickClock() {

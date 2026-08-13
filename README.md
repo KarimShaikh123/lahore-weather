@@ -28,7 +28,7 @@ Built in small reviewed steps:
 9. Readings endpoint — latest + history (done)
 10. Interface reads real /api/readings (done)
 11. Security audit (done)
-12. Polish (pending)
+12. Polish (done)
 13. Test everything (pending)
 14. Deploy + final review (pending)
 
