@@ -56,6 +56,25 @@ function formatStaleness(recordedAt, now) {
   return `Updated ${Math.floor(hours / 24)}d ago`;
 }
 
-const LWData = { aqiCategory, weatherCodeLabel, formatStaleness };
+function weatherIconKey(code) {
+  if (code === 0) return "clear";
+  if (code === 1 || code === 2) return "partly";
+  if (code === 3) return "cloud";
+  if (code === 45 || code === 48) return "fog";
+  if (code >= 51 && code <= 57) return "drizzle";
+  if (code >= 61 && code <= 67) return "rain";
+  if (code >= 71 && code <= 77) return "snow";
+  if (code >= 80 && code <= 82) return "showers";
+  if (code >= 85 && code <= 86) return "snow-showers";
+  if (code >= 95 && code <= 99) return "thunder";
+  return "unknown";
+}
+
+function aqiPosition(aqi) {
+  if (!Number.isFinite(aqi)) return 0;
+  return Math.max(0, Math.min(100, (aqi / 500) * 100));
+}
+
+const LWData = { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition };
 if (typeof window !== "undefined") window.LWData = LWData;
 if (typeof module !== "undefined" && module.exports) module.exports = LWData;

@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { aqiCategory, weatherCodeLabel, formatStaleness } = require("../js/data.js");
+const { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition } = require("../js/data.js");
 
 test("aqiCategory boundaries", () => {
   assert.equal(aqiCategory(0).key, "good");
@@ -41,4 +41,35 @@ test("formatStaleness buckets", () => {
 
 test("formatStaleness handles invalid input", () => {
   assert.equal(formatStaleness("not-a-date", new Date()), "Updated just now");
+});
+
+test("weatherIconKey maps WMO ranges", () => {
+  assert.equal(weatherIconKey(0), "clear");
+  assert.equal(weatherIconKey(1), "partly");
+  assert.equal(weatherIconKey(2), "partly");
+  assert.equal(weatherIconKey(3), "cloud");
+  assert.equal(weatherIconKey(45), "fog");
+  assert.equal(weatherIconKey(48), "fog");
+  assert.equal(weatherIconKey(51), "drizzle");
+  assert.equal(weatherIconKey(57), "drizzle");
+  assert.equal(weatherIconKey(61), "rain");
+  assert.equal(weatherIconKey(67), "rain");
+  assert.equal(weatherIconKey(71), "snow");
+  assert.equal(weatherIconKey(77), "snow");
+  assert.equal(weatherIconKey(80), "showers");
+  assert.equal(weatherIconKey(82), "showers");
+  assert.equal(weatherIconKey(85), "snow-showers");
+  assert.equal(weatherIconKey(86), "snow-showers");
+  assert.equal(weatherIconKey(95), "thunder");
+  assert.equal(weatherIconKey(99), "thunder");
+  assert.equal(weatherIconKey(999), "unknown");
+});
+
+test("aqiPosition clamps to the 0–500 scale", () => {
+  assert.equal(aqiPosition(0), 0);
+  assert.equal(aqiPosition(250), 50);
+  assert.equal(aqiPosition(500), 100);
+  assert.equal(aqiPosition(1000), 100);
+  assert.equal(aqiPosition(-10), 0);
+  assert.equal(aqiPosition(NaN), 0);
 });

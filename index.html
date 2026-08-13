@@ -14,7 +14,7 @@
     <div class="page-shell">
       <header class="site-header">
         <a class="wordmark" href="#top">Lahore<span>·</span>Weather</a>
-        <span class="tagline">Live weather + air quality</span>
+        <span class="clock" id="clock" aria-label="Current time in Lahore">— · Lahore</span>
       </header>
 
       <p class="staleness" id="staleness" hidden></p>
@@ -22,8 +22,13 @@
       <main id="top" class="dashboard">
         <section class="panel weather-panel" aria-label="Lahore weather">
           <h2>Weather</h2>
-          <div class="reading-big" id="w-temp">—</div>
-          <p class="reading-label" id="w-condition">Loading…</p>
+          <div class="weather-hero">
+            <div class="wi-slot" id="w-icon" aria-hidden="true"></div>
+            <div>
+              <div class="reading-big" id="w-temp">—</div>
+              <p class="reading-label" id="w-condition">Loading…</p>
+            </div>
+          </div>
           <ul class="reading-list">
             <li>Feels like <strong id="w-feels">—</strong></li>
             <li>Humidity <strong id="w-humidity">—</strong></li>
@@ -35,6 +40,18 @@
           <h2>Air Quality</h2>
           <div class="aqi-value" id="aqi-value">—</div>
           <p class="reading-label" id="aqi-label">Loading…</p>
+          <div class="aqi-scale" aria-label="Air Quality Index scale from 0 to 500">
+            <div class="aqi-track"><div class="aqi-marker" id="aqi-marker"></div></div>
+            <ul class="aqi-scale-legend">
+              <li>0</li>
+              <li>50</li>
+              <li>100</li>
+              <li>150</li>
+              <li>200</li>
+              <li>300</li>
+              <li>500</li>
+            </ul>
+          </div>
           <p class="reading-label" id="aqi-dominant" hidden></p>
           <ul class="pollutant-list">
             <li>PM2.5 <strong id="aqi-pm25">—</strong></li>

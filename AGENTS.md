@@ -121,10 +121,12 @@ Pollutants are optional keys (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) �
 
 ### Frontend (task 4)
 
-- `js/data.js` — pure logic: `aqiCategory`, `weatherCodeLabel`, `formatStaleness`; browser global `window.LWData`, Node export for tests.
-- `js/render.js` — `LW.render(reading, $)` fills the DOM ids from a reading; AQI colour via `data-cat` attribute.
-- `js/app.js` — fetches `READINGS_URL` (currently `./sample-reading.json` — the mock; **task 9 changes this one constant to `/api/readings`**), handles loading/error/staleness.
-- `test/data.test.js` — `node:test` unit tests for `js/data.js`. DOM wiring is verified by opening the page (house convention).
+- `js/data.js` — pure logic: `aqiCategory`, `weatherCodeLabel`, `formatStaleness`, `weatherIconKey` (WMO → icon key), `aqiPosition` (AQI → 0–100% for the scale bar); browser global `window.LWData`, Node export for tests. WMO thunder is only 95–99 (999 must land on `unknown`).
+- `js/render.js` — `LW.render(reading, $)` fills the DOM ids from a reading; AQI colour via `data-cat`; inline-SVG weather icon into `#w-icon` (`data.weather` = icon key); sets `#aqi-marker` `left` to `aqiPosition%`; sets `document.body.dataset.theme` to `day`/`night` from `reading.is_day` (1 = day).
+- `js/app.js` — fetches `READINGS_URL` (currently `./sample-reading.json` — the mock; **task 9 changes this one constant to `/api/readings`**), handles loading/error/staleness; `startTicker` updates the Lahore clock (`#clock`, `Intl` + `Asia/Karachi`) every 30s and the staleness line every 60s.
+- `index.html` — header right is `#clock` (was `.tagline`, removed); weather panel hero = `.wi-slot#w-icon` + temp; AQI panel has `.aqi-scale` (track + `#aqi-marker` + legend 0/50/100/150/200/300/500).
+- `styles.css` — tokens now `--ink-soft`/`--ink-faint`/`--panel` (raw hex removed from component rules so night mode works). Night theme = `body[data-theme="night"]` overriding `--paper/--ink/--panel/--line/--ink-soft/--ink-faint` (dark panels, light text). Icons are inline SVG (`stroke: currentColor`, color = `--ink`).
+- `test/data.test.js` — `node:test` unit tests for `js/data.js`. DOM wiring is verified by opening the page (house convention) + the throwaway `/tmp/opencode/render-smoke.js`.
 - Script load order in `index.html` matters: `data.js` → `render.js` → `app.js`.
 - Run tests: `npm test` (the `test` script is `node --test`).
 - Ingest must be idempotent: `ZADD` is keyed on epoch, so a double-fired cron never stores a duplicate reading for the same hour.
