@@ -89,6 +89,20 @@ function aqiPosition(aqi) {
   return Math.max(0, Math.min(100, ((i + frac) / bands.length) * 100));
 }
 
-const LWData = { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition };
+function buildForecastHours(hourly) {
+  if (!hourly) return null;
+  const labels = ["time", "temperature_2m", "precipitation_probability", "weather_code", "is_day"];
+  const isArray = (k) => Array.isArray(hourly[k]) && hourly[k].length > 0;
+  if (!labels.every(isArray)) return null;
+  return hourly.time.map((t, i) => ({
+    time: t,
+    temp: hourly.temperature_2m[i],
+    rain: hourly.precipitation_probability[i],
+    code: hourly.weather_code[i],
+    is_day: hourly.is_day[i],
+  }));
+}
+
+const LWData = { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, buildForecastHours };
 if (typeof window !== "undefined") window.LWData = LWData;
 if (typeof module !== "undefined" && module.exports) module.exports = LWData;

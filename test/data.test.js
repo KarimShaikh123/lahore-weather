@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition } = require("../js/data.js");
+const { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, buildForecastHours } = require("../js/data.js");
 
 test("aqiCategory boundaries", () => {
   assert.equal(aqiCategory(0).key, "good");
@@ -80,4 +80,24 @@ test("aqiPosition maps through six equal category bands", () => {
   assert.equal(aqiPosition(1000), 100);
   assert.equal(aqiPosition(-10), 0);
   assert.equal(aqiPosition(NaN), 0);
+});
+
+test("buildForecastHours maps hourly arrays into slots", () => {
+  const hours = buildForecastHours({
+    time: ["2026-08-13T14:00", "2026-08-13T15:00"],
+    temperature_2m: [36.7, 35.9],
+    precipitation_probability: [0, 45],
+    weather_code: [51, 61],
+    is_day: [1, 1],
+  });
+  assert.equal(hours.length, 2);
+  assert.deepEqual(hours[0], { time: "2026-08-13T14:00", temp: 36.7, rain: 0, code: 51, is_day: 1 });
+  assert.equal(hours[1].rain, 45);
+  assert.equal(hours[1].code, 61);
+});
+
+test("buildForecastHours rejects malformed payloads", () => {
+  assert.equal(buildForecastHours(null), null);
+  assert.equal(buildForecastHours({}), null);
+  assert.equal(buildForecastHours({ time: [], temperature_2m: [1] }), null);
 });
