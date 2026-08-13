@@ -41,7 +41,7 @@
       $("staleness").hidden = false;
       startTicker(reading);
     } catch (err) {
-      showError("Couldn't load the latest reading. Check back in a few minutes.");
+      showError("Couldn't load the latest reading (tried " + READINGS_URL + ").");
     }
   }
 
