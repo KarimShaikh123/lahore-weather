@@ -103,6 +103,22 @@ function buildForecastHours(hourly) {
   }));
 }
 
-const LWData = { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, buildForecastHours };
+function sparklinePath(values, width, height, pad) {
+  const nums = values.filter((v) => Number.isFinite(v));
+  if (nums.length < 2) return null;
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const span = max - min || 1;
+  const step = (width - pad * 2) / (nums.length - 1);
+  return nums
+    .map((v, i) => {
+      const x = pad + i * step;
+      const y = pad + (1 - (v - min) / span) * (height - pad * 2);
+      return (i === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1);
+    })
+    .join(" ");
+}
+
+const LWData = { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, buildForecastHours, sparklinePath };
 if (typeof window !== "undefined") window.LWData = LWData;
 if (typeof module !== "undefined" && module.exports) module.exports = LWData;

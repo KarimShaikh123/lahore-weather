@@ -42,6 +42,7 @@
         return;
       }
       LW.render(reading, $);
+      LW.renderHistory(payload.history, $);
       const stale = LWData.formatStaleness(reading.recorded_at, new Date());
       $("staleness").textContent = stale;
       $("staleness").hidden = false;

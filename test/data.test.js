@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, buildForecastHours } = require("../js/data.js");
+const { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, buildForecastHours, sparklinePath } = require("../js/data.js");
 
 test("aqiCategory boundaries", () => {
   assert.equal(aqiCategory(0).key, "good");
@@ -100,4 +100,14 @@ test("buildForecastHours rejects malformed payloads", () => {
   assert.equal(buildForecastHours(null), null);
   assert.equal(buildForecastHours({}), null);
   assert.equal(buildForecastHours({ time: [], temperature_2m: [1] }), null);
+});
+
+test("sparklinePath builds a scaled path and rejects tiny series", () => {
+  const p = sparklinePath([50, 100, 75], 1100, 120, 6);
+  assert.equal(typeof p, "string");
+  assert.match(p, /^M6\.0 /);
+  assert.match(p, / L1094\.0 /);
+  assert.equal(sparklinePath([], 1100, 120, 6), null);
+  assert.equal(sparklinePath([42], 1100, 120, 6), null);
+  assert.equal(sparklinePath([50, null, 90], 1100, 120, 6), "M6.0 114.0 L1094.0 6.0");
 });

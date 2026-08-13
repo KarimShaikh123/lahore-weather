@@ -69,6 +69,19 @@
         <p class="forecast-note" id="forecast-note" hidden></p>
       </section>
 
+      <section class="panel forecast-panel" id="trend" aria-label="Air quality trend" hidden>
+        <div class="trend-head">
+          <h2 id="trend-latest">Air quality trend</h2>
+          <p class="trend-range" id="trend-range"></p>
+        </div>
+        <div class="trend-plot">
+          <svg viewBox="0 0 1100 120" preserveAspectRatio="none" aria-hidden="true">
+            <path id="aqi-spark-path" class="aqi-spark" d=""></path>
+          </svg>
+        </div>
+        <p class="trend-current"><strong id="trend-current"></strong> now</p>
+      </section>
+
       <p class="error-banner" id="error-banner" role="alert" hidden></p>
 
       <footer class="site-footer">

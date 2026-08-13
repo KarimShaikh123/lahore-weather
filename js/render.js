@@ -47,5 +47,19 @@
     document.body.dataset.sky = SKY_BY_ICON[iconKey] || "overcast";
   }
 
-  window.LW = { render };
+  function renderHistory(history, $) {
+    const section = $("trend");
+    if (!section || !history || history.length < 2) return;
+    const values = history.map((r) => r.aqi).filter(Number.isFinite);
+    const path = LWData.sparklinePath(values, 1100, 120, 6);
+    if (!path) return;
+    $("aqi-spark-path").setAttribute("d", path);
+    const latest = values[values.length - 1];
+    $("trend-latest").textContent = "Last 24h";
+    $("trend-range").textContent = `${Math.min(...values)}–${Math.max(...values)} AQI`;
+    $("trend-current").textContent = String(latest);
+    section.hidden = false;
+  }
+
+  window.LW = { render, renderHistory };
 })();
