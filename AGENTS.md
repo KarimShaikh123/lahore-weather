@@ -13,15 +13,15 @@
 Living checklist — update the tick in the same commit that completes the task.
 
 - [x] Task 0 — README + AGENTS.md (this file)
-- [ ] Task 1 — Scaffold: git init, private GitHub repo `lahore-weather`, local git identity, `.gitignore` (`.env.local`, `node_modules`, `.vercel`, `dist`), `.env.example` (placeholders only), `package.json` with `@upstash/redis` (version from `npm view`), `vercel.json` (cleanUrls + nosniff)
+- [x] Task 1 — Scaffold: git init, private GitHub repo `lahore-weather`, local git identity, `.gitignore` (`.env.local`, `node_modules`, `.vercel`, `dist`), `.env.example` (placeholders only), `package.json` with `@upstash/redis` (version from `npm view`), `vercel.json` (cleanUrls + nosniff)
 - [ ] Task 2 — Weather probe: throwaway script proves Open-Meteo field map for Lahore (lat 31.558, lon 74.35071); pinned fields + `current_units`; discard after
 - [ ] Task 3 — AQI probe: throwaway script proves WAQI station `A471607` readings using `AQI_API_KEY` from `.env.local`; handles 200-but-`data:null` and missing-key gracefully; discard after
-- [ ] Task 4 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days)
-- [ ] Task 5 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup
-- [ ] Task 6 — `.github/workflows/ingest.yml`: hourly cron, POSTs with `CRON_SECRET` from GitHub Actions secrets
-- [ ] Task 7 — `api/readings.js`: latest via `ZREVRANGE 0 0`, history via `ZRANGE`
-- [ ] Task 8 — Interface: `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI)
-- [ ] Task 9 — Client loading/error/staleness: loading state, failed request, missing data, station-offline render, "last read Xh ago" badge. Tests
+- [ ] Task 4 — Interface (pulled forward so the owner can review it early): `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI); loading/error/staleness states; renders a sample-reading JSON mock (no backend needed) — swap to the real endpoint happens in Task 9
+- [ ] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days)
+- [ ] Task 6 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup
+- [ ] Task 7 — `.github/workflows/ingest.yml`: hourly cron, POSTs with `CRON_SECRET` from GitHub Actions secrets
+- [ ] Task 8 — `api/readings.js`: latest via `ZREVRANGE 0 0`, history via `ZRANGE`
+- [ ] Task 9 — Swap interface mock → real `/api/readings` (single small commit; contract already pinned by the mock shape)
 - [ ] Task 10 — Security audit: no secrets in repo/logs, `CRON_SECRET` enforced, `.env.example` in sync, Redis token scoped
 - [ ] Task 11 — Polish: responsive breakpoints (820/560), empty states, AQI category contrast
 - [ ] Task 12 — Test everything: full `node:test` suite + manual wrong-input pokes
