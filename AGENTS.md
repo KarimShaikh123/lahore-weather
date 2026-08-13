@@ -15,7 +15,7 @@ Living checklist — update the tick in the same commit that completes the task.
 - [x] Task 0 — README + AGENTS.md (this file)
 - [x] Task 1 — Scaffold: git init, private GitHub repo `lahore-weather`, local git identity, `.gitignore` (`.env.local`, `node_modules`, `.vercel`, `dist`), `.env.example` (placeholders only), `package.json` with `@upstash/redis` (version from `npm view`), `vercel.json` (cleanUrls + nosniff)
 - [x] Task 2 — Weather probe: throwaway script proves Open-Meteo field map for Lahore (lat 31.558, lon 74.35071); pinned fields + `current_units`; discard after
-- [ ] Task 3 — AQI probe: throwaway script proves WAQI station `A471607` readings using `AQI_API_KEY` from `.env.local`; handles 200-but-`data:null` and missing-key gracefully; discard after
+- [x] Task 3 — AQI probe: throwaway script proves WAQI station `A471607` readings using `AQI_API_KEY` from `.env.local`; handles 200-but-`data:null` and missing-key gracefully; discard after. Verified real Lahore data 2026-08-13 (AQI 179, fresh); city feed proven stale — use the station feed
 - [x] Task 4 — Interface (pulled forward so the owner can review it early): `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI); loading/error/staleness states; renders a sample-reading JSON mock (no backend needed) — swap to the real endpoint happens in Task 9
 - [ ] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days)
 - [ ] Task 6 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup
@@ -86,14 +86,15 @@ Open-Meteo `current` object for Lahore (lat 31.558, lon 74.35071, `timezone=auto
 - Open-Meteo variable names are the long forms: `relative_humidity_2m`, `weather_code` — short aliases used by other providers do not exist here. Errors come back as HTTP 400 with an `error: true` body; check the body, not just the status.
 - WAQI: station `A471607` (Lahore). A response can be HTTP 200 with `data: null` (station offline) — that is an error state to surface, never a crash. `data.aqi` is US AQI 0–500; pollutant values are nested in `data.iaqi.*.v` (keys `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`).
 
-### WAQI contract (schema verified 2026-08-13, task 3; real Lahore values still pending a real token)
+### WAQI contract (verified live 2026-08-13 with a real token — task 3 complete)
 
-- Endpoint: `https://api.waqi.info/feed/lahore/?token=AQI_API_KEY` — the **city feed** (`/feed/lahore/`), verified to exist on aqicn.org/city/lahore (2026-08-13: overall AQI 128, PM2.5 128, PM10 68, NO2 3, SO2 3, O3 5, CO 3; source: Pakistan Air Quality Monitor - US EPA). Prefer the city feed over the station feeds (`A471607`, `A74005`, `A540730` exist but their identity could not be verified without a real token — the demo token returned a different station for `A471607`).
+- **Endpoint: `https://api.waqi.info/feed/A471607/?token=AQI_API_KEY` — the STATION feed. Verified fresh 2026-08-13: `data.city.name` = "Lahore", geo [31.548, 74.344], AQI 179, dominentpol `pm25`, iaqi keys actually present `h, pm1, pm10, pm25, t` (this station measures no NO2/O3/SO2/CO — those stay absent, not zero), reading time `2026-08-13T08:00:00Z`.**
+- **Trap (verified with the real token): the CITY feed `feed/lahore/` returns STALE data — AQI 34 timestamped 2025-02-18 (station "Lahore US Embassy"). The aqicn.org web page looks current, but this API endpoint is not. Never use `feed/lahore/` for live data; always use the station feed `feed/A471607/`.**
 - Top level: `status` (`"ok"` | `"error"`) and `data` (object, or `null` when station is offline). Check `data` for null — do not trust `status` alone.
 - `data.aqi` — US AQI 0–500. `data.dominentpol` — dominant pollutant key (e.g. `pm25`).
-- `data.iaqi` — pollutant map, **only keys the station actually measures** (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`, `h`, `p`, `t`, `w`), each `{ v: <number> }`. Never assume a pollutant key exists.
-- `data.city.name` + `data.city.geo` — verify these say Lahore when the real token lands; a wrong-station response must be rejected, not stored.
-- `data.time.iso` — reading time, ISO with offset (e.g. `2026-08-13T16:00:00+08:00`).
+- `data.iaqi` — pollutant map, **only keys the station actually measures** (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`, `h`, `p`, `t`, `w`, `dew`), each `{ v: <number> }`. Never assume a pollutant key exists.
+- `data.city.name` + `data.city.geo` — must say Lahore; a wrong-station response must be rejected, not stored.
+- `data.time.iso` — station reading time, ISO with offset or `Z`.
 - **Trap (verified): the public `token=demo` is hardcoded to fake data** — `feed/lahore/?token=demo` returned Shanghai, `feed/A471607/?token=demo` returned Bend, Oregon. The demo token is useless for verifying Lahore; the real token is required.
 - `data.iaqi` values carry **no unit field** — render them as-is; do not assert or invent units for WAQI pollutants.
 
@@ -116,7 +117,7 @@ One flat JSON object per hourly snapshot:
 }
 ```
 
-Pollutants are optional keys (`pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) — a station may not measure all of them; render missing ones as `—`.
+Pollutants are optional keys (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) — a station may not measure all of them; render missing ones as `—`.
 
 ### Frontend (task 4)
 
