@@ -46,9 +46,10 @@ The browser only ever talks to `/api/readings`. API keys never reach the browser
 ## Commands
 
 - Install: `npm install`
-- Local dev: `npx vercel dev` (needs populated `.env.local`)
+- Local dev: `npx vercel dev` (needs populated `.env.local`; runs `api/` functions + static files)
+- Static preview of the interface only (no `api/`): `python3 -m http.server 4317` — `npx serve` is unreliable in this environment (first-run install hangs). The app MUST be served over HTTP: `fetch()` is blocked on `file://`, so opening `index.html` by double-click shows the error state even though the mock is correct.
 - Syntax check: `node --check <file>` (one file at a time)
-- Tests: `node --test api/*.test.js` (or the per-task test file)
+- Tests: `npm test` (the `test` script is `node --test`, discovers `test/*.test.js`)
 - Deploy: push to `main` (auto), or `npx vercel --prod`
 - Verify a deploy: read the live page content (Lahore numbers, advancing timestamp) — never a status code alone
 
