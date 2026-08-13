@@ -14,7 +14,7 @@ Living checklist — update the tick in the same commit that completes the task.
 
 - [x] Task 0 — README + AGENTS.md (this file)
 - [x] Task 1 — Scaffold: git init, private GitHub repo `lahore-weather`, local git identity, `.gitignore` (`.env.local`, `node_modules`, `.vercel`, `dist`), `.env.example` (placeholders only), `package.json` with `@upstash/redis` (version from `npm view`), `vercel.json` (cleanUrls + nosniff)
-- [ ] Task 2 — Weather probe: throwaway script proves Open-Meteo field map for Lahore (lat 31.558, lon 74.35071); pinned fields + `current_units`; discard after
+- [x] Task 2 — Weather probe: throwaway script proves Open-Meteo field map for Lahore (lat 31.558, lon 74.35071); pinned fields + `current_units`; discard after
 - [ ] Task 3 — AQI probe: throwaway script proves WAQI station `A471607` readings using `AQI_API_KEY` from `.env.local`; handles 200-but-`data:null` and missing-key gracefully; discard after
 - [ ] Task 4 — Interface (pulled forward so the owner can review it early): `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI); loading/error/staleness states; renders a sample-reading JSON mock (no backend needed) — swap to the real endpoint happens in Task 9
 - [ ] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days)
@@ -61,6 +61,25 @@ The browser only ever talks to `/api/readings`. API keys never reach the browser
 - Before any commit that touches secrets/config, run a grep audit for real key material. A leak found later is a rotation, not a fix.
 
 ## API domain rules (do not regress)
+
+### Pinned data contract (verified live 2026-08-13, task 2)
+
+Open-Meteo `current` object for Lahore (lat 31.558, lon 74.35071, `timezone=auto`):
+
+| Field | Unit (`current_units`) | Sample |
+|---|---|---|
+| `time` | `iso8601`, local Asia/Karachi (UTC+5) | `2026-08-13T14:00` |
+| `interval` | seconds — **900 (15-min updates)** | 900 |
+| `temperature_2m` | `°C` | 36.7 |
+| `apparent_temperature` | `°C` | 42.9 |
+| `relative_humidity_2m` | `%` | 50 |
+| `weather_code` | `wmo code` | 51 |
+| `wind_speed_10m` | `km/h` | 5.3 |
+| `is_day` | `""` (0/1) | 1 |
+
+- `weather_code` is a WMO code and needs a code→label map for display (51 = light drizzle; not just a number on screen).
+- `utc_offset_seconds` 18000; timestamps are naive-local, no Z — treat as Asia/Karachi local time.
+- Errors: HTTP 400 with body `{"error": true, "reason": "..."}` — check the body, not just the status.
 
 - Open-Meteo current fields: `temperature_2m`, `apparent_temperature`, `relative_humidity_2m`, `weather_code`, `wind_speed_10m`, `is_day`; units arrive in `current_units` and must be asserted against the contract (`°C`, `%`, `km/h`), not just trusted.
 - Open-Meteo variable names are the long forms: `relative_humidity_2m`, `weather_code` — short aliases used by other providers do not exist here. Errors come back as HTTP 400 with an `error: true` body; check the body, not just the status.
