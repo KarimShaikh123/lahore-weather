@@ -19,7 +19,7 @@ Living checklist — update the tick in the same commit that completes the task.
 - [x] Task 4 — Interface (pulled forward so the owner can review it early): `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI); loading/error/staleness states; renders a sample-reading JSON mock (no backend needed) — swap to the real endpoint happens in Task 9
 - [x] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days). Verified live 2026-08-13: PING PONG on `logical-loon-118735.upstash.io`, ZADD→ZRANGE round-trip, dedup via `zremrangebyscore`, prune via `zremrangebyrank`, cleanup. Scheme pinned below
 - [x] Task 6 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup. E2E verified live 2026-08-13: real reading stored (36.2°C, AQI 171, pm25 dominant)
-- [ ] Task 7 — `.github/workflows/ingest.yml`: hourly cron, POSTs with `CRON_SECRET` from GitHub Actions secrets
+- [x] Task 7 — `.github/workflows/ingest.yml`: hourly cron (`0 * * * *`), POSTs with `CRON_SECRET` from GitHub Actions secrets. Manual trigger via `workflow_dispatch`
 - [ ] Task 8 — `api/readings.js`: latest via `ZREVRANGE 0 0`, history via `ZRANGE`
 - [ ] Task 9 — Swap interface mock → real `/api/readings` (single small commit; contract already pinned by the mock shape)
 - [ ] Task 10 — Security audit: no secrets in repo/logs, `CRON_SECRET` enforced, `.env.example` in sync, Redis token scoped
@@ -148,6 +148,11 @@ Pollutants are optional keys (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) �
 - **Keep the Redis client construction inside the handler** — tests `require("../api/ingest.js")` and must not construct a client (env vars may be unset in CI). Pure helpers are exported on `module.exports`: `isAuthorized`, `toEpochSeconds`, `buildReading`, `validateWeather`, `validateWaqi`, `validateFreshness`.
 - `api/readings.js` — task 8.
 - `test/ingest.test.js` — unit tests for the ingest helpers (no network): auth, epoch math, contract mapping (optional pollutants absent when the station doesn't measure them), validation errors, freshness.
+
+### Hourly cron (task 7)
+
+- `.github/workflows/ingest.yml` — `schedule` cron `0 * * * *` (every hour, minute 0) + `workflow_dispatch` for manual runs. Single step: `curl -sS --fail --max-time 60 -X POST "$INGEST_URL" -H "Authorization: Bearer $CRON_SECRET"`. Secrets come from env-mapped GitHub Actions secrets (not shell interpolation): `INGEST_URL` (the production `/api/ingest` URL — set at deploy, task 13) and `CRON_SECRET` (shared with the server + Vercel env). `--fail` makes any non-2xx mark the run failed, so a dead endpoint is loud, not silent.
+- The cron uses GitHub Actions' default read-only token; no checkout or permissions needed.
 - Ingest must be idempotent: score = epoch of the reading's hour, and ingest does `zremrangebyscore` (same hour) → `zadd`, so a double-fired cron never stores a duplicate reading for the same hour.
 - Stale data must be visible to users: the dashboard renders "last read Xh ago", so a dead cron or failed write is never silent.
 
