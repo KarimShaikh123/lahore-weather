@@ -1,0 +1,12 @@
+{
+  "name": "lahore-weather",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Lahore weather + air quality dashboard",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@upstash/redis": "1.38.2"
+  }
+}
