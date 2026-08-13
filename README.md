@@ -30,7 +30,7 @@ Built in small reviewed steps:
 11. Security audit (done)
 12. Polish (done)
 13. Test everything (done)
-14. Deploy + final review (pending)
+14. Deploy + final review (done) — live at https://lahore-weather-one.vercel.app
 
 ## Run locally
 
