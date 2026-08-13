@@ -23,7 +23,7 @@ Built in small reviewed steps:
 4. AQI probe — schema pinned; real Lahore readings blocked on the WAQI token (in progress)
 5. Interface — weather + AQI on one screen, renders a sample mock (done)
 6. Provision Upstash Redis + schema (done)
-7. Ingest endpoint — fetch, validate, store (pending)
+7. Ingest endpoint — fetch, validate, store (done)
 8. Hourly scheduler via GitHub Actions (pending)
 9. Readings endpoint — latest + history (pending)
 10. Swap interface mock → real endpoint (pending)

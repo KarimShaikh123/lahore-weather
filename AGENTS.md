@@ -18,7 +18,7 @@ Living checklist — update the tick in the same commit that completes the task.
 - [x] Task 3 — AQI probe: throwaway script proves WAQI station `A471607` readings using `AQI_API_KEY` from `.env.local`; handles 200-but-`data:null` and missing-key gracefully; discard after. Verified real Lahore data 2026-08-13 (AQI 179, fresh); city feed proven stale — use the station feed
 - [x] Task 4 — Interface (pulled forward so the owner can review it early): `index.html` + `styles.css` + `js/` in house style; weather + AQI visible first screen; AQI 0–500 with category colours; attribution line (Open-Meteo/CAMS, WAQI); loading/error/staleness states; renders a sample-reading JSON mock (no backend needed) — swap to the real endpoint happens in Task 9
 - [x] Task 5 — Provision Upstash Redis (creds → `.env.local`), connection test, key scheme (sorted set `readings`, score=epoch, prune to last 720 ≈ 30 days). Verified live 2026-08-13: PING PONG on `logical-loon-118735.upstash.io`, ZADD→ZRANGE round-trip, dedup via `zremrangebyscore`, prune via `zremrangebyrank`, cleanup. Scheme pinned below
-- [ ] Task 6 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup
+- [x] Task 6 — `api/ingest.js`: Bearer `CRON_SECRET` check → fetch Open-Meteo + WAQI → validate (response ok, error key, unit assertion, ranges, station-offline) → `ZADD` with dedup → prune. Tests for validation + dedup. E2E verified live 2026-08-13: real reading stored (36.2°C, AQI 171, pm25 dominant)
 - [ ] Task 7 — `.github/workflows/ingest.yml`: hourly cron, POSTs with `CRON_SECRET` from GitHub Actions secrets
 - [ ] Task 8 — `api/readings.js`: latest via `ZREVRANGE 0 0`, history via `ZRANGE`
 - [ ] Task 9 — Swap interface mock → real `/api/readings` (single small commit; contract already pinned by the mock shape)
@@ -141,6 +141,13 @@ Pollutants are optional keys (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) �
 - `test/data.test.js` — `node:test` unit tests for `js/data.js`. DOM wiring is verified by opening the page (house convention) + the throwaway `/tmp/opencode/render-smoke.js`.
 - Script load order in `index.html` matters: `data.js` → `icons.js` → `render.js` → `app.js`.
 - Run tests: `npm test` (the `test` script is `node --test`).
+
+### api/ serverless functions (tasks 6–8)
+
+- `api/ingest.js` — POST only. Bearer `CRON_SECRET` auth (`isAuthorized`); 405 on non-POST, 401 on bad auth, 502 on provider/validation failure, 500 on internal, 200 `{ ok, recorded_at, score, count }` on success. Fetches Open-Meteo (explicit `temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`, lat 31.558 lon 74.35071) and WAQI station feed in parallel; validates both (unit assertion °C/%/km/h, ranges, `is_day` 0/1, station-offline via `data:null`, wrong-city reject, freshness within ±2h/1h); builds the stored-reading contract; writes `zremrangebyscore(readings, score, score)` → `zadd` → `zremrangebyrank(readings, 0, -721)` prune.
+- **Keep the Redis client construction inside the handler** — tests `require("../api/ingest.js")` and must not construct a client (env vars may be unset in CI). Pure helpers are exported on `module.exports`: `isAuthorized`, `toEpochSeconds`, `buildReading`, `validateWeather`, `validateWaqi`, `validateFreshness`.
+- `api/readings.js` — task 8.
+- `test/ingest.test.js` — unit tests for the ingest helpers (no network): auth, epoch math, contract mapping (optional pollutants absent when the station doesn't measure them), validation errors, freshness.
 - Ingest must be idempotent: score = epoch of the reading's hour, and ingest does `zremrangebyscore` (same hour) → `zadd`, so a double-fired cron never stores a duplicate reading for the same hour.
 - Stale data must be visible to users: the dashboard renders "last read Xh ago", so a dead cron or failed write is never silent.
 
