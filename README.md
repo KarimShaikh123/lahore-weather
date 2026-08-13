@@ -27,7 +27,7 @@ Built in small reviewed steps:
 8. Hourly scheduler via GitHub Actions (done)
 9. Readings endpoint — latest + history (done)
 10. Interface reads real /api/readings (done)
-11. Security audit (pending)
+11. Security audit (done)
 12. Polish (pending)
 13. Test everything (pending)
 14. Deploy + final review (pending)

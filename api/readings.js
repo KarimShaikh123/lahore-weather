@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
   try {
     const redis = new Redis({
       url: process.env.KV_REST_API_URL,
-      token: process.env.KV_REST_API_TOKEN,
+      token: process.env.KV_REST_API_READ_ONLY_TOKEN,
     });
     const latest = await redis.zrange("readings", -1, -1);
     const history = await redis.zrange("readings", -HISTORY_ROWS, -1);
