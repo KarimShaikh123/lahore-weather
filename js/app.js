@@ -1,6 +1,5 @@
 (function () {
-  const sample = new URLSearchParams(location.search).get("sample");
-  const READINGS_URL = sample ? "./sample-" + sample + ".json" : "./sample-reading.json";
+  const READINGS_URL = "./sample-reading.json";
   const $ = (id) => document.getElementById(id);
 
   function showError(msg) {
