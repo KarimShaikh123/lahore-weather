@@ -2,7 +2,7 @@
 
 A dashboard showing Lahore's current weather and air quality at a glance — open it, see both, done.
 
-**Live:** TBD (set at deploy, task 12)
+**Live:** https://lahore-weather-one.vercel.app
 
 **Stack:** GitHub + Vercel + OpenCode — plain HTML/CSS/JS frontend, Node serverless functions in `api/`, Upstash Redis for storage. Data from Open-Meteo (weather + CAMS air particles/gases) and WAQI (AQI).
 
@@ -20,7 +20,7 @@ Built in small reviewed steps:
 1. README + AGENTS.md (done)
 2. Scaffold — git, GitHub repo, gitignore, env contract, Vercel config (done)
 3. Weather probe — prove Open-Meteo field map for Lahore (done)
-4. AQI probe — schema pinned; real Lahore readings blocked on the WAQI token (in progress)
+4. AQI probe — schema pinned; real Lahore readings via the station feed (done)
 5. Interface — weather + AQI on one screen, renders a sample mock (done)
 6. Provision Upstash Redis + schema (done)
 7. Ingest endpoint — fetch, validate, store (done)
@@ -53,9 +53,13 @@ Connected to GitHub; pushes to `main` auto-deploy to Vercel. Serverless function
 - `styles.css` — all styling (house tokens: `--ink`, `--paper`, `--lime`, `--coral`, `--blue`, `--error`, `--line` + AQI category colours `--aqi-*`)
 - `js/data.js` — pure logic: AQI category, WMO weather-code labels, staleness formatting
 - `js/render.js` — fills the page from a reading
-- `js/app.js` — fetch + loading/error/staleness; reads `./sample-reading.json` until the real endpoint lands
-- `sample-reading.json` — mock reading; defines the stored-reading contract
+- `js/icons.js` — the inline-SVG weather icon set
+- `js/app.js` — fetch `/api/readings` + loading/error/staleness
+- `js/forecast.js` — client-side keyless 24h forecast strip
+- `sample-reading.json` — contract fixture for the stored reading (nothing reads it at runtime)
 - `test/data.test.js` — `node:test` unit tests
+- `test/ingest.test.js` — ingest helper tests (auth, epoch math, contract mapping, validation)
+- `test/readings.test.js` — readings response tests (incl. empty DB)
 - `api/ingest.js` — hourly data collector: fetch both APIs, validate, write to Redis
 - `api/readings.js` — serves latest + history to the dashboard
 - `.github/workflows/ingest.yml` — hourly cron that calls `/api/ingest`
