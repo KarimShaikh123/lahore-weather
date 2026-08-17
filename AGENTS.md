@@ -40,7 +40,7 @@ GH Actions cron (hourly) ──POST /api/ingest──▶ verify Bearer CRON_SECR
 
 Browser ──GET /api/readings──▶
     ├─ ZRANGE readings -1 -1  → current conditions (latest)
-    └─ ZRANGE readings 0 -1   → history window
+    └─ ZRANGE readings -168 -1 → history window (last 168 ≈ 7 days)
 ```
 
 ### Redis key scheme + client facts (verified live 2026-08-13, task 5)
@@ -49,7 +49,7 @@ Browser ──GET /api/readings──▶
 - Env vars injected (all 3 environments, mirrored into `.env.local`): `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL`, `REDIS_URL`. Use `KV_REST_API_URL` + `KV_REST_API_TOKEN` for the REST client; never hardcode.
 - Key scheme: ONE sorted set `readings`. Score = unix epoch **seconds** of the reading's hour (deterministic within the hour → dedup). Member = the flat stored-reading JSON string.
 - Ingest write order: `zremrangebyscore("readings", score, score)` (clear any same-hour member) → `zadd("readings", { score, member })` → `zremrangebyrank("readings", 0, -721)` (keep newest 720 ≈ 30 days).
-- Reads: latest = `zrange("readings", -1, -1)`; history = `zrange("readings", 0, -1)`. Write path (ingest) uses `KV_REST_API_TOKEN`; read-only path (readings) uses `KV_REST_API_READ_ONLY_TOKEN`.
+- Reads: latest = `zrange("readings", -1, -1)`; history = `zrange("readings", -168, -1)` (last 168 ≈ 7 days, includes latest). Write path (ingest) uses `KV_REST_API_TOKEN`; read-only path (readings) uses `KV_REST_API_READ_ONLY_TOKEN`.
 - @upstash/redis v1.38.2 facts (checked the installed package, not assumed): **there is no `zrevrange`** — the last element is `zrange(key, -1, -1)`; `automaticDeserialization` is ON, so JSON members come back already parsed (objects, not strings); `zrem(key, memberObject)` works while `zrem(key, rawString)` can miss; pruning uses `zremrangebyrank`. Latency ~0.6–0.9s per REST call — fine for an hourly cron.
 
 The browser only ever talks to `/api/readings`. API keys never reach the browser.
@@ -173,5 +173,5 @@ Pollutants are optional keys (`pm1`, `pm25`, `pm10`, `no2`, `o3`, `so2`, `co`) �
 - Attribution is required by the data licences: credit Open-Meteo / CAMS and WAQI in the UI. This is compliance, not polish.
 - One task, one commit, one review; nothing committed before the owner reviews.
 - Commit identity: Karim Shaikh <karimhshaikh009@gmail.com>.
-- Keep this file, README, and PROCESS.md updated in the same commit as any structural change.
+- Keep this file and README updated in the same commit as any structural change.
 - This file is the single source of truth for the build. Every task commit must (a) tick its status checkbox, (b) record any new API behaviour, error state, command, or convention discovered during the task, and (c) update the file map if files changed. Its goal: a fresh agent with zero context can pick it up and know exactly what exists, what is next, and what must not regress.
