@@ -86,9 +86,16 @@ test("buildReading maps both providers into the stored contract", () => {
   assert.equal(r.is_day, 1);
   assert.equal(r.aqi, 179);
   assert.equal(r.dominant_pollutant, "pm25");
-  assert.equal(r.pm1, 154);
-  assert.equal(r.pm25, 179);
-  assert.equal(r.pm10, 77);
+  assert.equal(r.pm25, 56.1);
+  assert.equal(r.pm10, 59.5);
+  assert.equal("pm1" in r, false);
+});
+
+test("buildReading ignores WAQI iaqi particles — stale sub-indexes on the provider", () => {
+  const r = buildReading(weather, waqi, air);
+  assert.notEqual(r.pm25, waqi.data.iaqi.pm25.v);
+  assert.notEqual(r.pm10, waqi.data.iaqi.pm10.v);
+  assert.equal(r.pm1, undefined);
 });
 
 test("buildReading fills gases from CAMS when the station does not measure them", () => {

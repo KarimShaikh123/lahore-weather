@@ -47,11 +47,13 @@ function buildReading(weather, waqi, air) {
     aqi: waqi.data.aqi,
     dominant_pollutant: waqi.data.dominentpol || null,
   };
-  for (const key of ["pm1", "pm25", "pm10", "no2", "o3", "so2", "co"]) {
+  for (const key of ["no2", "o3", "so2", "co"]) {
     const v = value(key);
     if (v !== undefined) reading[key] = v;
   }
   const aq = (air && air.current) || {};
+  if (typeof aq.pm2_5 === "number") reading.pm25 = aq.pm2_5;
+  if (typeof aq.pm10 === "number") reading.pm10 = aq.pm10;
   for (const [src, key] of GAS_SOURCE_MAP) {
     if (!(key in reading) && typeof aq[src] === "number") reading[key] = aq[src];
   }

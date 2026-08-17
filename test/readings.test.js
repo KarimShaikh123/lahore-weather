@@ -12,9 +12,8 @@ const reading = {
   is_day: 1,
   aqi: 171,
   dominant_pollutant: "pm25",
-  pm1: 154,
-  pm25: 171,
-  pm10: 77,
+  pm25: 56.1,
+  pm10: 59.5,
 };
 
 test("buildReadingsResponse exposes latest and history", () => {
