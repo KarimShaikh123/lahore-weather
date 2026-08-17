@@ -4,7 +4,7 @@ A dashboard showing Lahore's current weather and air quality at a glance — ope
 
 **Live:** TBD (set at deploy, task 12)
 
-**Stack:** GitHub + Vercel + OpenCode — plain HTML/CSS/JS frontend, Node serverless functions in `api/`, Upstash Redis for storage. Data from Open-Meteo (weather) and WAQI (air quality).
+**Stack:** GitHub + Vercel + OpenCode — plain HTML/CSS/JS frontend, Node serverless functions in `api/`, Upstash Redis for storage. Data from Open-Meteo (weather + CAMS air particles/gases) and WAQI (AQI).
 
 ## What it does
 
