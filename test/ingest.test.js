@@ -9,6 +9,10 @@ const {
   validateWaqi,
   validateAir,
   validateFreshness,
+  validateFreshnessIso,
+  hourScore,
+  impliedPm25,
+  sensorsDisagree,
 } = require("../api/ingest.js");
 
 const weather = {
@@ -192,4 +196,47 @@ test("validateFreshness allows recent readings and rejects stale/future", () => 
     "weather: reading in the future"
   );
   assert.equal(validateFreshness("garbage", 18000, now), "weather: unparseable time");
+});
+
+test("validateFreshnessIso checks offset-stamped times (WAQI shape)", () => {
+  const now = Math.round(Date.UTC(2026, 7, 13, 9, 30) / 1000);
+  assert.equal(validateFreshnessIso("2026-08-13T08:00:00Z", now), null);
+  assert.equal(validateFreshnessIso("2026-08-13T05:00:00Z", now), "aqi: reading too old");
+  assert.equal(validateFreshnessIso("2026-08-13T12:00:00Z", now), "aqi: reading in the future");
+  assert.equal(validateFreshnessIso("garbage", now), "aqi: unparseable time");
+  assert.equal(validateFreshnessIso("2026-08-13T05:00:00Z", now, "air"), "air: reading too old");
+});
+
+test("hourScore floors the reading to its hour", () => {
+  assert.equal(hourScore("2026-08-13T14:15", 18000), Math.round(Date.UTC(2026, 7, 13, 9, 0) / 1000));
+  assert.equal(hourScore("2026-08-13T14:45", 18000), Math.round(Date.UTC(2026, 7, 13, 9, 0) / 1000));
+  assert.equal(hourScore("garbage", 18000), null);
+});
+
+test("impliedPm25 inverts the US EPA breakpoints", () => {
+  assert.equal(impliedPm25(0), 0);
+  assert.equal(impliedPm25(50), 12);
+  assert.equal(impliedPm25(100), 35.4);
+  assert.equal(impliedPm25(150), 55.4);
+  assert.equal(impliedPm25(200), 150.4);
+  assert.equal(impliedPm25(300), 250.4);
+  assert.equal(impliedPm25(500), 500.4);
+  assert.ok(Math.abs(impliedPm25(75) - 23.51) < 0.01);
+  assert.equal(impliedPm25("nope"), null);
+});
+
+test("sensorsDisagree flags big station/model divergence only", () => {
+  assert.equal(sensorsDisagree(54, 53.4), true);
+  assert.equal(sensorsDisagree(0, 30), true);
+  assert.equal(sensorsDisagree(179, 56.1), false);
+  assert.equal(sensorsDisagree(300, 250), false);
+  assert.equal(sensorsDisagree(54, undefined), false);
+  assert.equal(sensorsDisagree(null, 53.4), false);
+});
+
+test("buildReading stamps sensors_disagree from the aqi/pm25 cross-check", () => {
+  assert.equal(buildReading(weather, waqi, air).sensors_disagree, false);
+  const agreeing = { status: "ok", data: { ...waqi.data, aqi: 54 } };
+  const camsAir = { ...air, current: { ...air.current, pm2_5: 53.4 } };
+  assert.equal(buildReading(weather, agreeing, camsAir).sensors_disagree, true);
 });

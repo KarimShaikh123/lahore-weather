@@ -57,6 +57,7 @@ function buildReading(weather, waqi, air) {
   for (const [src, key] of GAS_SOURCE_MAP) {
     if (!(key in reading) && typeof aq[src] === "number") reading[key] = aq[src];
   }
+  reading.sensors_disagree = sensorsDisagree(waqi.data.aqi, reading.pm25);
   return reading;
 }
 
@@ -104,12 +105,55 @@ function validateAir(air) {
   return null;
 }
 
-function validateFreshness(recordedAt, utcOffsetSeconds, nowSeconds) {
+function validateFreshness(recordedAt, utcOffsetSeconds, nowSeconds, label) {
+  label = label || "weather";
   const s = toEpochSeconds(recordedAt, utcOffsetSeconds);
-  if (s === null) return "weather: unparseable time";
-  if (nowSeconds - s > 2 * 3600) return "weather: reading too old";
-  if (s - nowSeconds > 3600) return "weather: reading in the future";
+  if (s === null) return label + ": unparseable time";
+  if (nowSeconds - s > 2 * 3600) return label + ": reading too old";
+  if (s - nowSeconds > 3600) return label + ": reading in the future";
   return null;
+}
+
+function validateFreshnessIso(iso, nowSeconds, label) {
+  label = label || "aqi";
+  const s = Math.floor(Date.parse(iso) / 1000);
+  if (!Number.isFinite(s)) return label + ": unparseable time";
+  if (nowSeconds - s > 2 * 3600) return label + ": reading too old";
+  if (s - nowSeconds > 3600) return label + ": reading in the future";
+  return null;
+}
+
+function hourScore(naiveLocal, utcOffsetSeconds) {
+  const s = toEpochSeconds(naiveLocal, utcOffsetSeconds);
+  return s === null ? null : s - (s % 3600);
+}
+
+const EPA_BANDS = [
+  [0, 50, 0, 12],
+  [51, 100, 12.1, 35.4],
+  [101, 150, 35.5, 55.4],
+  [151, 200, 55.5, 150.4],
+  [201, 300, 150.5, 250.4],
+  [301, 400, 250.5, 350.4],
+  [401, 500, 350.5, 500.4],
+];
+
+function impliedPm25(aqi) {
+  if (typeof aqi !== "number" || aqi < 0) return null;
+  const a = Math.min(aqi, 500);
+  for (const [alo, ahi, clo, chi] of EPA_BANDS) {
+    if (a <= ahi) return clo + ((a - alo) / (ahi - alo)) * (chi - clo);
+  }
+  return 500.4;
+}
+
+function sensorsDisagree(aqi, pm25) {
+  const implied = impliedPm25(aqi);
+  if (implied === null || typeof pm25 !== "number") return false;
+  const diff = Math.abs(implied - pm25);
+  const lo = Math.min(implied, pm25);
+  const hi = Math.max(implied, pm25);
+  return diff > 20 && hi > 2.5 * lo;
 }
 
 module.exports = async (req, res) => {
@@ -154,14 +198,20 @@ module.exports = async (req, res) => {
       return;
     }
     const offset = weather.utc_offset_seconds || 18000;
-    const freshErr = validateFreshness(weather.current.time, offset, Math.floor(Date.now() / 1000));
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const freshErr =
+      validateFreshness(weather.current.time, offset, nowSeconds) ||
+      (waqi.data.time && waqi.data.time.iso
+        ? validateFreshnessIso(waqi.data.time.iso, nowSeconds)
+        : "aqi: missing reading time") ||
+      validateFreshness(air.current.time, offset, nowSeconds, "air");
     if (freshErr) {
       res.status(502).json({ error: freshErr });
       return;
     }
 
     const reading = buildReading(weather, waqi, air);
-    const score = toEpochSeconds(reading.recorded_at, offset);
+    const score = hourScore(reading.recorded_at, offset);
 
     const redis = new Redis({
       url: process.env.KV_REST_API_URL,
@@ -186,3 +236,7 @@ module.exports.validateWeather = validateWeather;
 module.exports.validateWaqi = validateWaqi;
 module.exports.validateAir = validateAir;
 module.exports.validateFreshness = validateFreshness;
+module.exports.validateFreshnessIso = validateFreshnessIso;
+module.exports.hourScore = hourScore;
+module.exports.impliedPm25 = impliedPm25;
+module.exports.sensorsDisagree = sensorsDisagree;

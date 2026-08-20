@@ -37,6 +37,7 @@
     $("aqi-o3").textContent = reading.o3 ?? "—";
     $("aqi-so2").textContent = reading.so2 ?? "—";
     $("aqi-co").textContent = reading.co ?? "—";
+    $("aqi-disagree").hidden = !reading.sensors_disagree;
 
     const marker = $("aqi-marker");
     marker.hidden = false;
