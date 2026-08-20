@@ -89,13 +89,22 @@ function aqiPosition(aqi) {
   return Math.max(0, Math.min(100, ((i + frac) / bands.length) * 100));
 }
 
-function buildForecastHours(hourly) {
+function formatOffset(utcOffsetSeconds) {
+  const sign = utcOffsetSeconds < 0 ? "-" : "+";
+  const abs = Math.abs(utcOffsetSeconds);
+  const hh = String(Math.floor(abs / 3600)).padStart(2, "0");
+  const mm = String(Math.floor((abs % 3600) / 60)).padStart(2, "0");
+  return sign + hh + ":" + mm;
+}
+
+function buildForecastHours(hourly, utcOffsetSeconds) {
   if (!hourly) return null;
   const labels = ["time", "temperature_2m", "precipitation_probability", "weather_code", "is_day"];
   const isArray = (k) => Array.isArray(hourly[k]) && hourly[k].length > 0;
   if (!labels.every(isArray)) return null;
+  const offset = formatOffset(Number.isFinite(utcOffsetSeconds) ? utcOffsetSeconds : 18000);
   return hourly.time.map((t, i) => ({
-    time: t,
+    time: t + offset,
     temp: hourly.temperature_2m[i],
     rain: hourly.precipitation_probability[i],
     code: hourly.weather_code[i],
@@ -119,6 +128,6 @@ function sparklinePath(values, width, height, pad) {
     .join(" ");
 }
 
-const LWData = { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, buildForecastHours, sparklinePath };
+const LWData = { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, formatOffset, buildForecastHours, sparklinePath };
 if (typeof window !== "undefined") window.LWData = LWData;
 if (typeof module !== "undefined" && module.exports) module.exports = LWData;

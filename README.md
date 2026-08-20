@@ -51,11 +51,11 @@ Connected to GitHub; pushes to `main` auto-deploy to Vercel. Serverless function
 - `.env.example` — placeholder names for every secret; never real values
 - `index.html` — page layout
 - `styles.css` — all styling (house tokens: `--ink`, `--paper`, `--lime`, `--coral`, `--blue`, `--error`, `--line` + AQI category colours `--aqi-*`)
-- `js/data.js` — pure logic: AQI category, WMO weather-code labels, staleness formatting
+- `js/data.js` — pure logic: AQI category, WMO weather-code labels, staleness formatting, `formatOffset`, forecast slots stamped with the provider's UTC offset so every viewer's browser parses the same instant
 - `js/render.js` — fills the page from a reading
 - `js/icons.js` — the inline-SVG weather icon set
 - `js/app.js` — fetch `/api/readings` + loading/error/staleness
-- `js/forecast.js` — client-side keyless 24h forecast strip
+- `js/forecast.js` — client-side keyless 24h forecast strip, hour labels always in Asia/Karachi wall clock
 - `sample-reading.json` — contract fixture for the stored reading (nothing reads it at runtime)
 - `test/data.test.js` — `node:test` unit tests
 - `test/ingest.test.js` — ingest helper tests (auth, epoch math, contract mapping, validation)

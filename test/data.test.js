@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, buildForecastHours, sparklinePath } = require("../js/data.js");
+const { aqiCategory, weatherCodeLabel, formatStaleness, weatherIconKey, aqiPosition, formatOffset, buildForecastHours, sparklinePath } = require("../js/data.js");
 
 test("aqiCategory boundaries", () => {
   assert.equal(aqiCategory(0).key, "good");
@@ -82,18 +82,53 @@ test("aqiPosition maps through six equal category bands", () => {
   assert.equal(aqiPosition(NaN), 0);
 });
 
+test("formatOffset renders an ISO offset from seconds", () => {
+  assert.equal(formatOffset(18000), "+05:00");
+  assert.equal(formatOffset(-18000), "-05:00");
+  assert.equal(formatOffset(0), "+00:00");
+  assert.equal(formatOffset(19800), "+05:30");
+});
+
 test("buildForecastHours maps hourly arrays into slots", () => {
-  const hours = buildForecastHours({
-    time: ["2026-08-13T14:00", "2026-08-13T15:00"],
-    temperature_2m: [36.7, 35.9],
-    precipitation_probability: [0, 45],
-    weather_code: [51, 61],
-    is_day: [1, 1],
-  });
+  const hours = buildForecastHours(
+    {
+      time: ["2026-08-13T14:00", "2026-08-13T15:00"],
+      temperature_2m: [36.7, 35.9],
+      precipitation_probability: [0, 45],
+      weather_code: [51, 61],
+      is_day: [1, 1],
+    },
+    18000
+  );
   assert.equal(hours.length, 2);
-  assert.deepEqual(hours[0], { time: "2026-08-13T14:00", temp: 36.7, rain: 0, code: 51, is_day: 1 });
+  assert.deepEqual(hours[0], { time: "2026-08-13T14:00+05:00", temp: 36.7, rain: 0, code: 51, is_day: 1 });
   assert.equal(hours[1].rain, 45);
   assert.equal(hours[1].code, 61);
+});
+
+test("buildForecastHours falls back to the Karachi offset when missing", () => {
+  const hours = buildForecastHours({
+    time: ["2026-08-13T14:00"],
+    temperature_2m: [36],
+    precipitation_probability: [0],
+    weather_code: [0],
+    is_day: [1],
+  });
+  assert.equal(hours[0].time, "2026-08-13T14:00+05:00");
+});
+
+test("stamped forecast times parse to the same instant regardless of system timezone", () => {
+  const hours = buildForecastHours(
+    {
+      time: ["2026-08-13T14:00"],
+      temperature_2m: [36],
+      precipitation_probability: [0],
+      weather_code: [0],
+      is_day: [1],
+    },
+    18000
+  );
+  assert.equal(Date.parse(hours[0].time), Date.parse("2026-08-13T09:00:00.000Z"));
 });
 
 test("buildForecastHours rejects malformed payloads", () => {

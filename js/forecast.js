@@ -5,9 +5,9 @@
     "&forecast_hours=24&timezone=auto";
   const $ = (id) => document.getElementById(id);
 
-  function renderForecast(hourly) {
+  function renderForecast(hourly, utcOffsetSeconds) {
     const strip = $("forecast-strip");
-    const hours = LWData.buildForecastHours(hourly);
+    const hours = LWData.buildForecastHours(hourly, utcOffsetSeconds);
     if (!hours) throw new Error("malformed forecast payload");
     const fmt = new Intl.DateTimeFormat("en-GB", {
       timeZone: "Asia/Karachi",
@@ -47,7 +47,7 @@
       const res = await fetch(FORECAST_URL);
       if (!res.ok) throw new Error("bad status " + res.status);
       const payload = await res.json();
-      renderForecast(payload.hourly);
+      renderForecast(payload.hourly, payload.utc_offset_seconds);
       panel.hidden = false;
     } catch (err) {
       note.textContent = "Forecast unavailable right now.";
